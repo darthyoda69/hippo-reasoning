@@ -6,7 +6,7 @@ Reasoning memory. Trace replay. Regression gates. The CI/CD layer for agent beha
 
 [![npm](https://img.shields.io/npm/v/hippo-reasoning)](https://www.npmjs.com/package/hippo-reasoning)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/darthyoda/hippo-reasoning)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/darthyoda69/hippo-reasoning)
 
 ---
 
@@ -97,7 +97,7 @@ The demo app is a split-panel interface with 4 tabs:
 ## Run Locally
 
 ```bash
-git clone https://github.com/darthyoda/hippo-reasoning.git
+git clone https://github.com/darthyoda69/hippo-reasoning.git
 cd hippo-reasoning
 npm install
 ```
@@ -242,7 +242,7 @@ Hippo doesn't replace fact memory or observability — it adds the missing layer
 
 ## Deploy to Vercel
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/darthyoda/hippo-reasoning)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/darthyoda69/hippo-reasoning)
 
 Set `ANTHROPIC_API_KEY` in your Vercel environment variables.
 

@@ -76,7 +76,7 @@ export default function BenchmarksPage() {
             <span className="text-sm text-[#888]">Benchmarks</span>
           </div>
           <a
-            href="https://github.com/darthyoda/hippo-reasoning"
+            href="https://github.com/darthyoda69/hippo-reasoning"
             target="_blank"
             rel="noopener"
             className="text-xs text-[#888] hover:text-[#ededed] transition-colors"
@@ -236,7 +236,7 @@ export default function BenchmarksPage() {
           <h2 className="text-lg font-semibold mb-3">Reproduce These Results</h2>
           <div className="bg-[#111] rounded-lg p-4 font-mono text-sm text-[#888]">
             <div className="text-[#555]"># Clone and run</div>
-            <div>git clone https://github.com/darthyoda/hippo-reasoning.git</div>
+            <div>git clone https://github.com/darthyoda69/hippo-reasoning.git</div>
             <div>cd hippo-reasoning</div>
             <div>npm install</div>
             <div>echo &quot;ANTHROPIC_API_KEY=your-key&quot; &gt; .env.local</div>
@@ -255,7 +255,7 @@ export default function BenchmarksPage() {
           </div>
           <div className="flex justify-center gap-4 mt-2 text-xs text-[#555]">
             <a href="/" className="hover:text-[#888] transition-colors">Demo</a>
-            <a href="https://github.com/darthyoda/hippo-reasoning" className="hover:text-[#888] transition-colors">GitHub</a>
+            <a href="https://github.com/darthyoda69/hippo-reasoning" className="hover:text-[#888] transition-colors">GitHub</a>
             <a href="https://www.linkedin.com/in/leonbenz/" className="hover:text-[#888] transition-colors">Leon Benz</a>
           </div>
         </div>

@@ -63,7 +63,7 @@ export default function Home() {
             Benchmarks
           </a>
           <a
-            href="https://github.com/darthyoda/hippo-reasoning"
+            href="https://github.com/darthyoda69/hippo-reasoning"
             target="_blank"
             rel="noopener"
             className="text-[#888] hover:text-[#ededed] transition-colors"
