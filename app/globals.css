@@ -1,0 +1,61 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  --bg: #0a0a0a;
+  --card: #111111;
+  --border: #1e1e1e;
+  --text: #ededed;
+  --muted: #666666;
+  --accent: #00d4ff;
+  --success: #00ff88;
+  --warning: #ffaa00;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', -apple-system, sans-serif;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #555; }
+
+/* Trace step animation */
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.trace-step {
+  animation: fadeSlideIn 0.2s ease-out;
+}
+
+/* Pulse for live indicator */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.live-pulse {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* Score bar animation */
+@keyframes growWidth {
+  from { width: 0; }
+}
+
+.score-bar {
+  animation: growWidth 0.6s ease-out;
+}
