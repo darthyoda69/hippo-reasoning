@@ -2,10 +2,9 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 
-const KONAMI = ['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'];
 const CHARS = 'hippoHIPPO01アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン';
 const MSG_LINES = [
-  '> HIPPO PROTOCOL ACTIVATED',
+  '> YOU ESCAPED THE MATRIX',
   '> built by leon benz',
   '> the hippocampus never forgets',
   '> reasoning memory is the next frontier',
@@ -16,29 +15,14 @@ const MSG_LINES = [
 export function MatrixRain() {
   const [active, setActive] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const bufferRef = useRef<number[]>([]);
   const animRef = useRef<number>(0);
   const startRef = useRef<number>(0);
 
   const handleKey = useCallback((e: KeyboardEvent) => {
-    bufferRef.current.push(0); // placeholder
-    const key = e.key;
-    const seq = bufferRef.current;
-    // Store actual keys separately
-    if (!('_keys' in bufferRef)) (bufferRef as any)._keys = [];
-    (bufferRef as any)._keys.push(key);
-    const keys: string[] = (bufferRef as any)._keys;
-
-    if (keys.length > KONAMI.length) {
-      keys.shift();
-      seq.shift();
-    }
-    if (keys.length === KONAMI.length && keys.every((k, i) => k === KONAMI[i])) {
+    if (e.key === 'Escape' && !active) {
       setActive(true);
-      keys.length = 0;
-      seq.length = 0;
     }
-  }, []);
+  }, [active]);
 
   useEffect(() => {
     window.addEventListener('keydown', handleKey);
