@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { nanoid } from 'nanoid';
 import { TraceBuilder, hippoMemory } from '@/lib/hippo';
 import { getModel } from '@/lib/models';
+import { tavily } from '@tavily/core';
 
 export const maxDuration = 60;
 
@@ -39,7 +40,7 @@ export async function POST(req: Request) {
         maxSteps: 10,
         tools: {
           searchKnowledge: tool({
-            description: 'Search for factual information about a topic. Use this when you need to look up data, statistics, or facts.',
+            description: 'Search the web for factual information about a topic. Use this when you need to look up data, statistics, or facts.',
             parameters: z.object({
               query: z.string().describe('The search query'),
               domain: z.string().optional().describe('Specific domain to search: science, business, tech, history'),
@@ -50,7 +51,7 @@ export async function POST(req: Request) {
                 toolArgs: { query, domain },
               });
 
-              const results = getSearchResults(query, domain);
+              const results = await searchWeb(query, domain);
 
               trace.addStep('tool_result', JSON.stringify(results).slice(0, 300), {
                 toolName: 'searchKnowledge',
@@ -155,71 +156,44 @@ export async function POST(req: Request) {
   });
 }
 
-// ─── Simulated Knowledge Base ─────────────────────────────────────
+// ─── Web Search (Tavily) ─────────────────────────────────────────
 
-function getSearchResults(query: string, domain?: string): { results: Array<{ title: string; snippet: string; relevance: number }> } {
-  const q = query.toLowerCase();
-  const knowledgeBase: Array<{ keywords: string[]; title: string; snippet: string }> = [
-    {
-      keywords: ['ai', 'agent', 'memory', 'llm'],
-      title: 'AI Agent Memory Systems — State of the Art 2026',
-      snippet: 'Current AI agents lack persistent reasoning memory. While solutions like Mem0 ($24M Series A) store factual memory, none capture reasoning traces — the decision paths, tool usage patterns, and problem-solving strategies agents use. This gap prevents agents from learning across sessions.',
-    },
-    {
-      keywords: ['market', 'size', 'ai', 'infrastructure'],
-      title: 'AI Infrastructure Market Analysis',
-      snippet: 'The AI infrastructure market is projected to exceed $150B by 2028. Memory and observability represent the fastest-growing segments as enterprise adoption of AI agents accelerates. Agent orchestration spending grew 340% YoY in 2025.',
-    },
-    {
-      keywords: ['vercel', 'sdk', 'deployment', 'nextjs'],
-      title: 'Vercel AI SDK Ecosystem Report',
-      snippet: 'The Vercel AI SDK has become the de facto standard for building AI-powered web applications. Over 200K projects use the SDK, with agent-based architectures growing fastest. Key missing piece: native reasoning trace and memory capabilities.',
-    },
-    {
-      keywords: ['hippocampus', 'memory', 'brain', 'neuroscience'],
-      title: 'Hippocampal Memory Architecture',
-      snippet: 'The hippocampus, representing only 0.1% of brain volume, is responsible for all episodic memory formation and pattern completion. Its dual-process architecture (fast encoding in CA3, slow consolidation to cortex) inspired modern AI memory research including HEMA (2025) which achieved 87% factual recall.',
-    },
-    {
-      keywords: ['startup', 'growth', 'revenue', 'saas'],
-      title: 'Developer Tool Startup Growth Benchmarks',
-      snippet: 'Developer-focused infrastructure startups with OSS adoption strategies show median 15% MoM growth in year 1. Key success factor: solving a pain point developers encounter daily. Top performers: Vercel, Supabase, Railway — all started as dev tools with strong DX.',
-    },
-    {
-      keywords: ['climate', 'energy', 'renewable', 'carbon'],
-      title: 'Global Energy Transition Report 2026',
-      snippet: 'Renewable energy now accounts for 42% of global electricity generation. Solar costs dropped 89% over the past decade. The transition requires $4.5T annual investment through 2030 to meet Paris Agreement targets.',
-    },
-    {
-      keywords: ['productivity', 'remote', 'work', 'tools'],
-      title: 'Workplace Productivity Analysis',
-      snippet: 'Knowledge workers spend 28% of their time searching for information. AI-assisted workflows reduce this to 11%. Companies using AI agents for routine tasks report 34% productivity gains, but 67% cite "lack of context continuity" as the primary limitation.',
-    },
-    {
-      keywords: ['rust', 'performance', 'systems', 'programming'],
-      title: 'Rust in Production Infrastructure',
-      snippet: 'Rust adoption in production infrastructure grew 180% in 2025. Key adopters: Cloudflare (network edge), Discord (real-time), Figma (multiplayer). Primary advantage: memory safety with zero-cost abstractions, enabling sub-millisecond latency in hot-path operations.',
-    },
-  ];
+const tavilyClient = process.env.TAVILY_API_KEY
+  ? tavily({ apiKey: process.env.TAVILY_API_KEY })
+  : null;
 
-  const results = knowledgeBase
-    .map(item => {
-      const relevance = item.keywords.filter(k => q.includes(k)).length / item.keywords.length;
-      return { title: item.title, snippet: item.snippet, relevance: Math.round(relevance * 100) / 100 };
-    })
-    .filter(r => r.relevance > 0)
-    .sort((a, b) => b.relevance - a.relevance)
-    .slice(0, 3);
+async function searchWeb(
+  query: string,
+  domain?: string,
+): Promise<{ results: Array<{ title: string; snippet: string; url: string; relevance: number }> }> {
+  const searchQuery = domain ? `${query} ${domain}` : query;
 
-  if (results.length === 0) {
-    return {
-      results: [{
-        title: `Search results for "${query}"`,
-        snippet: `Found relevant information about ${query}${domain ? ` in the ${domain} domain` : ''}. Key findings suggest this is an active area of development with significant market opportunity.`,
-        relevance: 0.5,
-      }],
-    };
+  if (tavilyClient) {
+    try {
+      const response = await tavilyClient.search(searchQuery, {
+        maxResults: 3,
+        searchDepth: 'basic',
+      });
+      return {
+        results: response.results.map((r) => ({
+          title: r.title,
+          snippet: r.content.slice(0, 300),
+          url: r.url,
+          relevance: r.score ?? 0.8,
+        })),
+      };
+    } catch {
+      // Fall through to fallback
+    }
   }
 
-  return { results };
+  // Fallback: let the model answer from its own knowledge (no fake results)
+  return {
+    results: [{
+      title: `Web search unavailable`,
+      snippet: `Search API not configured. Answer from your own knowledge about: ${searchQuery}`,
+      url: '',
+      relevance: 0.5,
+    }],
+  };
 }

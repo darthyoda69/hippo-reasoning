@@ -16,6 +16,7 @@
   "dependencies": {
     "@ai-sdk/anthropic": "^1.2.0",
     "@ai-sdk/openai": "^1.2.0",
+    "@tavily/core": "^0.7.1",
     "ai": "^4.1.0",
     "nanoid": "^5.0.9",
     "next": "^15.1.0",
