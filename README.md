@@ -84,13 +84,14 @@ One click turns any trace into a regression test that gates deployments:
 
 **[Live Demo →](https://hippo-reasoning.vercel.app)**
 
-The demo app is a split-panel interface with 4 tabs:
+The demo app is a split-panel interface with 5 tabs:
 
 | Panel | What it shows |
 |-------|--------------|
-| **Chat** | Research agent with tool calls (search, calculate, analyze) |
+| **Chat** | Research agent with tool calls (search, calculate, analyze). Supports Anthropic, OpenAI, and Google models. |
 | **Trace** | Real-time reasoning visualization — every step as it happens. Save any trace as a regression test. |
-| **Memory** | Stored traces with expandable detail view |
+| **Memory** | Stored traces with expandable detail view and similarity-ranked retrieval |
+| **Diff** | Visual side-by-side trace comparison for debugging regressions |
 | **Eval** | Side-by-side comparison: with memory vs without |
 | **CI/CD** | Regression suite — run deploy gate, track pass/fail history |
 
@@ -105,6 +106,9 @@ npm install
 Create `.env.local`:
 ```
 ANTHROPIC_API_KEY=your-key-here
+# Optional — enable cross-model support:
+# OPENAI_API_KEY=your-key-here
+# GOOGLE_GENERATIVE_AI_API_KEY=your-key-here
 ```
 
 ```bash
@@ -117,21 +121,30 @@ npm run dev
 ```
 hippo-reasoning/
 ├── lib/
-│   └── hippo.ts              # Core: TraceBuilder + MemoryStore + RegressionStore + types
+│   ├── hippo.ts               # Core: TraceBuilder + MemoryStore + RegressionStore + types
+│   ├── models.ts              # Cross-model provider abstraction (Anthropic/OpenAI/Google)
+│   ├── similarity.ts          # TF-IDF cosine similarity for trace retrieval (zero deps)
+│   ├── memory-policy.ts       # Outcome-driven trace scoring & retention policies
+│   ├── export.ts              # Trace dataset export (OpenAI/Anthropic JSONL, CSV)
+│   ├── composable-memory.ts   # Mem0/Zep adapter interface for hybrid memory
+│   ├── plugins.ts             # Plugin system for custom trace processors
+│   └── kv-store.ts            # Vercel KV persistent storage adapter
 ├── app/
-│   ├── page.tsx               # Split-panel demo (4 tabs)
-│   ├── layout.tsx             # Root layout
+│   ├── page.tsx               # Split-panel demo (5 tabs)
+│   ├── layout.tsx             # Root layout + OG metadata
 │   ├── globals.css            # Animations + theme
 │   ├── benchmarks/page.tsx    # Benchmarks visualization
 │   └── api/
-│       ├── chat/route.ts      # Vercel AI SDK + Anthropic + trace capture
+│       ├── chat/route.ts      # Vercel AI SDK + multi-model + trace capture
 │       ├── traces/route.ts    # Trace retrieval + deletion API
 │       ├── eval/route.ts      # With/without memory eval comparison
+│       ├── export/route.ts    # Trace dataset export API
 │       └── regressions/route.ts # Regression tests + deploy gate API
 ├── components/
 │   ├── ChatPanel.tsx          # Chat with memory toggle
 │   ├── TracePanel.tsx         # Real-time trace timeline + save as regression
 │   ├── MemoryPanel.tsx        # Stored traces browser
+│   ├── DiffPanel.tsx          # Visual trace diff for debugging regressions
 │   ├── EvalPanel.tsx          # Eval comparison dashboard
 │   └── RegressionPanel.tsx    # CI/CD deploy gate + regression suite
 ```
@@ -194,6 +207,7 @@ const context = hippoMemory.getReasoningContext(newQuery, sessionId);
 | `/api/regressions` | GET | List regression tests + pass/fail status |
 | `/api/regressions` | POST | Create from trace, run single test, or run deploy gate |
 | `/api/regressions` | DELETE | Remove a regression test |
+| `/api/export?format=X` | GET | Export traces as datasets (openai_jsonl, anthropic_jsonl, csv, json) |
 
 ## Benchmarks
 
@@ -236,7 +250,9 @@ Hippo doesn't replace fact memory or observability — it adds the missing layer
 
 - **Next.js 15** — App Router
 - **Vercel AI SDK v4** — `streamText`, `generateText`, `tool`, `useChat`
-- **Anthropic Claude** — via `@ai-sdk/anthropic`
+- **Anthropic Claude** — via `@ai-sdk/anthropic` (default)
+- **OpenAI GPT-4o** — via `@ai-sdk/openai` (optional)
+- **Google Gemini** — via `@ai-sdk/google` (optional)
 - **Tailwind CSS** — Dark theme, custom animations
 - **TypeScript** — Strict mode
 
@@ -252,15 +268,15 @@ Set `ANTHROPIC_API_KEY` in your Vercel environment variables.
 - [x] With/without memory eval framework
 - [x] One-click regression test creation from traces
 - [x] Deploy gate (run all regression tests, PASS/FAIL)
+- [x] Cross-model memory (OpenAI, Google, etc.)
+- [x] Trace similarity search for smarter retrieval
+- [x] Outcome-driven memory policies (reinforce traces that led to good results, decay bad ones)
+- [x] Visual trace diff for debugging regressions
+- [x] Export traces as datasets for fine-tuning
+- [x] Composable memory: combine Hippo reasoning traces with Mem0/Zep fact memory
+- [x] Plugin system for custom trace processors
 - [ ] Persistent storage via Vercel KV
 - [ ] `hippo gate` CLI command for CI pipelines
-- [ ] Cross-model memory (OpenAI, Google, etc.)
-- [ ] Trace similarity search for smarter retrieval
-- [ ] Outcome-driven memory policies (reinforce traces that led to good results, decay bad ones)
-- [ ] Visual trace diff for debugging regressions
-- [ ] Export traces as datasets for fine-tuning
-- [ ] Composable memory: combine Hippo reasoning traces with Mem0/Zep fact memory
-- [ ] Plugin system for custom trace processors
 
 ## License
 
