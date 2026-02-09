@@ -34,14 +34,12 @@ export function ChatPanel({ sessionId, onTraceUpdate, onStreamingChange }: ChatP
     },
   });
 
-  // Restore messages from sessionStorage after hydration
-  const restoredRef = useRef(false);
+  // Restore messages from sessionStorage after mount
   useEffect(() => {
-    if (restoredRef.current) return;
-    restoredRef.current = true;
     const saved = getSavedMessages(sessionId);
     if (saved.length > 0) setMessages(saved);
-  }, [sessionId, setMessages]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Persist messages to sessionStorage
   useEffect(() => {

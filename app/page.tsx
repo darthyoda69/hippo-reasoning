@@ -97,6 +97,11 @@ export default function Home() {
     { id: 'regression', label: 'CI/CD' },
   ];
 
+  // Don't render until sessionStorage is restored (prevents wrong sessionId reaching ChatPanel)
+  if (!hydrated) {
+    return <div className="h-screen bg-black" />;
+  }
+
   return (
     <div className="h-screen flex flex-col bg-black">
       {/* Header — terminal style */}
