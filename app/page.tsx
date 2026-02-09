@@ -38,6 +38,7 @@ export default function Home() {
   const [sessionId, setSessionId] = useState('demo-0');
   const [hydrated, setHydrated] = useState(false);
   const [diffTraces, setDiffTraces] = useState<[ReasoningTrace | null, ReasoningTrace | null]>([null, null]);
+  const [showHelp, setShowHelp] = useState(false);
 
   // Restore state from sessionStorage after hydration
   useEffect(() => {
@@ -145,13 +146,13 @@ export default function Home() {
         </div>
 
         {/* Right panel */}
-        <div className="w-[45%] flex flex-col">
+        <div className="w-[45%] flex flex-col relative">
           {/* Tab bar */}
           <div className="flex border-b border-[#1a1a1a]">
             {tabs.map(tab => (
               <button
                 key={tab.id}
-                onClick={() => setRightTab(tab.id)}
+                onClick={() => { setRightTab(tab.id); setShowHelp(false); }}
                 className={`px-3 py-2 text-[10px] tracking-widest transition-colors relative ${
                   rightTab === tab.id ? 'text-[#00ff41]' : 'text-[#404040] hover:text-[#606060]'
                 }`}
@@ -183,8 +184,110 @@ export default function Home() {
             {rightTab === 'eval' && <EvalPanel sessionId={sessionId} hasMemory={storedTraces.length > 0} />}
             {rightTab === 'regression' && <RegressionPanel sessionId={sessionId} />}
           </div>
+
+          {/* Contextual help button */}
+          <button
+            onClick={() => setShowHelp(!showHelp)}
+            className={`absolute bottom-4 right-4 z-30 w-7 h-7 flex items-center justify-center text-xs font-mono font-bold border transition-all ${
+              showHelp
+                ? 'border-[#0abdc6] text-[#0abdc6] bg-[#0a0a0a]'
+                : 'border-[#333] text-[#505050] bg-[#0a0a0a] hover:border-[#0abdc6] hover:text-[#0abdc6]'
+            }`}
+          >
+            ?
+          </button>
+
+          {/* Contextual help overlay */}
+          {showHelp && (
+            <div className="absolute bottom-14 right-4 z-30 w-72 border border-[#1a1a1a] bg-[#0a0a0a] font-mono text-xs shadow-lg shadow-black/60">
+              <div className="flex items-center justify-between px-3 py-2 border-b border-[#1a1a1a]">
+                <span className="text-[#0abdc6] text-[10px] uppercase tracking-wider font-medium">
+                  $ help --{rightTab}
+                </span>
+                <button onClick={() => setShowHelp(false)} className="text-[#404040] hover:text-[#b0b0b0] text-[10px]">[x]</button>
+              </div>
+              <div className="px-3 py-3 space-y-3">
+                <TabHelp tab={rightTab} />
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
+  );
+}
+
+const helpContent: Record<RightTab, { what: string; steps: string[]; tip: string }> = {
+  trace: {
+    what: 'Live reasoning trace of the agent. Every step it takes — tool calls, results, internal reasoning — appears here in real-time.',
+    steps: [
+      'Send a message in the chat panel',
+      'Watch the trace build step-by-step',
+      'Click "$ hippo save --regression" to capture as a test',
+    ],
+    tip: 'Saved traces become regression tests in the CI/CD tab — use them to catch reasoning regressions before deploy.',
+  },
+  memory: {
+    what: 'All stored reasoning traces from this session. On future queries, these are injected into the agent\'s context — giving it memory of past reasoning (the "hippocampus" effect).',
+    steps: [
+      'Chat with the agent to build up traces',
+      'Click a trace to expand and inspect steps',
+      'Use [ ] checkboxes to select two traces for DIFF',
+      'Click "$ hippo save --regression" inside any trace',
+    ],
+    tip: 'The more traces stored, the richer the agent\'s context becomes. Try asking follow-up questions — the agent remembers.',
+  },
+  diff: {
+    what: 'Side-by-side structural comparison of two reasoning traces. Shows how the agent\'s reasoning path differs across queries or over time.',
+    steps: [
+      'Go to the MEMORY tab',
+      'Click [ ] on two different traces',
+      'Return here to see the diff',
+    ],
+    tip: 'Compare early vs late traces to see how memory context changes the agent\'s reasoning strategy.',
+  },
+  eval: {
+    what: 'A/B evaluation: runs the same query with and without reasoning memory, then scores both on relevance, completeness, reasoning depth, and tool usage.',
+    steps: [
+      'Chat with the agent first (builds memory context)',
+      'Select an eval query above',
+      'Click run — two runs execute back-to-back',
+      'Compare scores and read the delta',
+    ],
+    tip: 'Green delta = memory is helping. Red = regression. A 0% delta with "both runs baseline" means no memory was available yet.',
+  },
+  regression: {
+    what: 'Regression gate for agent deployment. Save important traces as tests, then run the full suite. All tests must pass their minimum score threshold to authorize deployment.',
+    steps: [
+      'Save traces as tests from TRACE or MEMORY tabs',
+      'Tests appear here with their score thresholds',
+      'Click "$ hippo gate --run-all" to run the suite',
+      'PASS = safe to deploy, FAIL = regressions detected',
+    ],
+    tip: 'Think of this as CI/CD for your agent\'s reasoning quality — catch regressions before they reach production.',
+  },
+};
+
+function TabHelp({ tab }: { tab: RightTab }) {
+  const h = helpContent[tab];
+  return (
+    <>
+      <p className="text-[#b0b0b0] leading-relaxed">{h.what}</p>
+      <div>
+        <div className="text-[#0abdc6] text-[10px] uppercase tracking-wider font-medium mb-1.5">workflow</div>
+        <div className="space-y-1">
+          {h.steps.map((step, i) => (
+            <div key={i} className="flex gap-2 text-[#b0b0b0]">
+              <span className="text-[#404040] shrink-0">{i + 1}.</span>
+              <span>{step}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="border-t border-[#1a1a1a] pt-2">
+        <span className="text-[#00ff41]">tip:</span>{' '}
+        <span className="text-[#808080]">{h.tip}</span>
+      </div>
+    </>
   );
 }
