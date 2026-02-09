@@ -275,7 +275,7 @@ Set `ANTHROPIC_API_KEY` in your Vercel environment variables.
 - [x] Export traces as datasets for fine-tuning
 - [x] Composable memory: combine Hippo reasoning traces with Mem0/Zep fact memory
 - [x] Plugin system for custom trace processors
-- [ ] Persistent storage via Vercel KV
+- [x] Persistent storage via Vercel KV (Upstash Redis)
 - [ ] `hippo gate` CLI command for CI pipelines
 
 ## License
