@@ -22,7 +22,7 @@ export async function POST(req: Request) {
 
   const systemPrompt = [
     `You are a research assistant. Answer questions thoroughly using the tools available to you.`,
-    `When you use tools, explain your reasoning step by step.`,
+    `When you use tools, explain your reasoning step by step. Limit yourself to 2-3 tool calls, then synthesize the results into a comprehensive final answer.`,
     reasoningContext
       ? `\n\nYou have reasoning memory from past tasks in this session. Use it to give better, more informed answers:\n\n${reasoningContext}`
       : '',
@@ -32,7 +32,7 @@ export async function POST(req: Request) {
     model: anthropic('claude-sonnet-4-20250514'),
     system: systemPrompt,
     messages,
-    maxSteps: 5,
+    maxSteps: 10,
     tools: {
       searchKnowledge: tool({
         description: 'Search for factual information about a topic. Use this when you need to look up data, statistics, or facts.',

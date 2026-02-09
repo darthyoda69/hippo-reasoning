@@ -277,11 +277,14 @@ class RegressionStore implements IRegressionStore {
 }
 
 // ─── Singleton Exports ──────────────────────────────────────────────
-// Use Vercel KV when configured, otherwise in-memory
+// Use Vercel KV when configured, otherwise in-memory.
+// globalThis ensures the singleton persists across serverless invocations
+// (module-level vars can be re-initialized if bundler creates separate chunks).
+
+const GLOBAL_KEY = '__hippo_stores__' as const;
 
 function createStores(): { memory: IMemoryStore; regressions: IRegressionStore } {
   if (process.env.KV_REST_API_URL) {
-    // Dynamic import to avoid errors when @vercel/kv is not installed
     try {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { KVMemoryStore, KVRegressionStore } = require('./kv-store');
@@ -291,10 +294,18 @@ function createStores(): { memory: IMemoryStore; regressions: IRegressionStore }
       console.log('[hippo] @vercel/kv not installed, falling back to in-memory');
     }
   }
-  console.log('[hippo] Using in-memory storage (data resets on restart)');
+  console.log('[hippo] Using in-memory storage (data resets on cold start)');
   return { memory: new MemoryStore(), regressions: new RegressionStore() };
 }
 
-const stores = createStores();
+function getStores(): { memory: IMemoryStore; regressions: IRegressionStore } {
+  const g = globalThis as Record<string, unknown>;
+  if (!g[GLOBAL_KEY]) {
+    g[GLOBAL_KEY] = createStores();
+  }
+  return g[GLOBAL_KEY] as { memory: IMemoryStore; regressions: IRegressionStore };
+}
+
+const stores = getStores();
 export const hippoMemory: IMemoryStore = stores.memory;
 export const hippoRegressions: IRegressionStore = stores.regressions;
