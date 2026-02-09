@@ -1,4 +1,4 @@
-import { streamText, tool } from 'ai';
+import { createDataStreamResponse, streamText, tool } from 'ai';
 import { anthropic } from '@ai-sdk/anthropic';
 import { z } from 'zod';
 import { nanoid } from 'nanoid';
@@ -28,123 +28,122 @@ export async function POST(req: Request) {
       : '',
   ].join('');
 
-  const result = streamText({
-    model: anthropic('claude-sonnet-4-20250514'),
-    system: systemPrompt,
-    messages,
-    maxSteps: 10,
-    tools: {
-      searchKnowledge: tool({
-        description: 'Search for factual information about a topic. Use this when you need to look up data, statistics, or facts.',
-        parameters: z.object({
-          query: z.string().describe('The search query'),
-          domain: z.string().optional().describe('Specific domain to search: science, business, tech, history'),
-        }),
-        execute: async ({ query, domain }) => {
-          trace.addStep('tool_call', `Searching: "${query}"${domain ? ` in ${domain}` : ''}`, {
-            toolName: 'searchKnowledge',
-            toolArgs: { query, domain },
-          });
+  return createDataStreamResponse({
+    execute: async (dataStream) => {
+      const result = streamText({
+        model: anthropic('claude-sonnet-4-20250514'),
+        system: systemPrompt,
+        messages,
+        maxSteps: 10,
+        tools: {
+          searchKnowledge: tool({
+            description: 'Search for factual information about a topic. Use this when you need to look up data, statistics, or facts.',
+            parameters: z.object({
+              query: z.string().describe('The search query'),
+              domain: z.string().optional().describe('Specific domain to search: science, business, tech, history'),
+            }),
+            execute: async ({ query, domain }) => {
+              trace.addStep('tool_call', `Searching: "${query}"${domain ? ` in ${domain}` : ''}`, {
+                toolName: 'searchKnowledge',
+                toolArgs: { query, domain },
+              });
 
-          // Simulated search with realistic responses
-          const results = getSearchResults(query, domain);
+              const results = getSearchResults(query, domain);
 
-          trace.addStep('tool_result', JSON.stringify(results).slice(0, 300), {
-            toolName: 'searchKnowledge',
-          });
+              trace.addStep('tool_result', JSON.stringify(results).slice(0, 300), {
+                toolName: 'searchKnowledge',
+              });
 
-          return results;
+              return results;
+            },
+          }),
+
+          calculate: tool({
+            description: 'Perform mathematical calculations. Use for any math, percentages, conversions, or data analysis.',
+            parameters: z.object({
+              expression: z.string().describe('The math expression to evaluate'),
+              context: z.string().optional().describe('What this calculation is for'),
+            }),
+            execute: async ({ expression, context }) => {
+              trace.addStep('tool_call', `Calculating: ${expression}${context ? ` (${context})` : ''}`, {
+                toolName: 'calculate',
+                toolArgs: { expression, context },
+              });
+
+              let calcResult: number;
+              try {
+                calcResult = Function(`"use strict"; return (${expression.replace(/[^0-9+\-*/().%\s]/g, '')})`)() as number;
+              } catch {
+                calcResult = NaN;
+              }
+
+              const output = { expression, result: isNaN(calcResult) ? 'Error' : calcResult, context };
+
+              trace.addStep('tool_result', `Result: ${output.result}`, {
+                toolName: 'calculate',
+              });
+
+              return output;
+            },
+          }),
+
+          analyzeData: tool({
+            description: 'Analyze data patterns, compare metrics, or draw conclusions from information. Use when synthesizing multiple data points.',
+            parameters: z.object({
+              data: z.string().describe('The data or information to analyze'),
+              analysisType: z.enum(['compare', 'trend', 'summary', 'recommendation']).describe('Type of analysis'),
+            }),
+            execute: async ({ data, analysisType }) => {
+              trace.addStep('tool_call', `Analyzing (${analysisType}): ${data.slice(0, 100)}...`, {
+                toolName: 'analyzeData',
+                toolArgs: { analysisType, dataLength: data.length },
+              });
+
+              const analysis = {
+                type: analysisType,
+                input: data.slice(0, 200),
+                insights: `Analysis of type "${analysisType}" completed on ${data.length} chars of input.`,
+              };
+
+              trace.addStep('tool_result', analysis.insights, {
+                toolName: 'analyzeData',
+              });
+
+              return analysis;
+            },
+          }),
         },
-      }),
 
-      calculate: tool({
-        description: 'Perform mathematical calculations. Use for any math, percentages, conversions, or data analysis.',
-        parameters: z.object({
-          expression: z.string().describe('The math expression to evaluate'),
-          context: z.string().optional().describe('What this calculation is for'),
-        }),
-        execute: async ({ expression, context }) => {
-          trace.addStep('tool_call', `Calculating: ${expression}${context ? ` (${context})` : ''}`, {
-            toolName: 'calculate',
-            toolArgs: { expression, context },
-          });
+        onStepFinish: async (event) => {
+          if (event.text) {
+            trace.addStep('assistant_message', event.text.slice(0, 500));
+          }
+        },
 
-          let result: number;
-          try {
-            // Safe math evaluation (basic arithmetic only)
-            result = Function(`"use strict"; return (${expression.replace(/[^0-9+\-*/().%\s]/g, '')})`)() as number;
-          } catch {
-            result = NaN;
+        onFinish: async (event) => {
+          if (event.text) {
+            trace.addStep('assistant_message', event.text.slice(0, 500));
           }
 
-          const output = { expression, result: isNaN(result) ? 'Error' : result, context };
+          const completedTrace = trace.complete(
+            event.text ? event.text.slice(0, 200) : undefined
+          );
 
-          trace.addStep('tool_result', `Result: ${output.result}`, {
-            toolName: 'calculate',
-          });
+          // Store in memory (for reasoning context in future chats)
+          await hippoMemory.store(completedTrace);
 
-          return output;
+          // Stream the trace data directly to the client
+          dataStream.writeData(JSON.parse(JSON.stringify({ type: 'trace', trace: completedTrace })));
         },
-      }),
+      });
 
-      analyzeData: tool({
-        description: 'Analyze data patterns, compare metrics, or draw conclusions from information. Use when synthesizing multiple data points.',
-        parameters: z.object({
-          data: z.string().describe('The data or information to analyze'),
-          analysisType: z.enum(['compare', 'trend', 'summary', 'recommendation']).describe('Type of analysis'),
-        }),
-        execute: async ({ data, analysisType }) => {
-          trace.addStep('tool_call', `Analyzing (${analysisType}): ${data.slice(0, 100)}...`, {
-            toolName: 'analyzeData',
-            toolArgs: { analysisType, dataLength: data.length },
-          });
-
-          const analysis = {
-            type: analysisType,
-            input: data.slice(0, 200),
-            insights: `Analysis of type "${analysisType}" completed on ${data.length} chars of input.`,
-          };
-
-          trace.addStep('tool_result', analysis.insights, {
-            toolName: 'analyzeData',
-          });
-
-          return analysis;
-        },
-      }),
+      result.mergeIntoDataStream(dataStream);
     },
-
-    onStepFinish: async (event) => {
-      if (event.text) {
-        trace.addStep('assistant_message', event.text.slice(0, 500));
-      }
+    headers: {
+      'X-Hippo-Trace-Id': traceId,
+      'X-Hippo-Session-Id': sessionId,
+      'X-Hippo-Memory-Used': reasoningContext ? 'true' : 'false',
     },
-
-    onFinish: async (event) => {
-      if (event.text) {
-        trace.addStep('assistant_message', event.text.slice(0, 500));
-      }
-
-      const completedTrace = trace.complete(
-        event.text ? event.text.slice(0, 200) : undefined
-      );
-      await hippoMemory.store(completedTrace);
-    },
-  });
-
-  // Return stream with trace ID in headers
-  const response = result.toDataStreamResponse();
-
-  // Add trace ID header so client can fetch trace data
-  const headers = new Headers(response.headers);
-  headers.set('X-Hippo-Trace-Id', traceId);
-  headers.set('X-Hippo-Session-Id', sessionId);
-  headers.set('X-Hippo-Memory-Used', reasoningContext ? 'true' : 'false');
-  headers.set('X-Hippo-Memory-Size', String(await hippoMemory.getSize()));
-
-  return new Response(response.body, {
-    status: response.status,
-    headers,
   });
 }
 

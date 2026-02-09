@@ -14,29 +14,26 @@ export function ChatPanel({ sessionId, onTraceUpdate, onStreamingChange }: ChatP
   const [useMemory, setUseMemory] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
+  const { messages, input, handleInputChange, handleSubmit, isLoading, data } = useChat({
     api: '/api/chat',
     body: { sessionId, useMemory },
-    onResponse: async (response) => {
+    onResponse: async () => {
       onStreamingChange(true);
     },
     onFinish: async () => {
       onStreamingChange(false);
-      // Retry trace fetch — server needs time to store after stream ends
-      for (let i = 0; i < 5; i++) {
-        await new Promise(r => setTimeout(r, 1000 * (i + 1)));
-        try {
-          const res = await fetch(`/api/traces?sessionId=${sessionId}`);
-          const data = await res.json();
-          const latest = data.traces?.[0];
-          if (latest) {
-            onTraceUpdate(latest);
-            return;
-          }
-        } catch { /* retry */ }
-      }
     },
   });
+
+  // Extract trace data streamed from the server
+  useEffect(() => {
+    if (data && data.length > 0) {
+      const lastItem = data[data.length - 1] as { type?: string; trace?: ReasoningTrace };
+      if (lastItem?.type === 'trace' && lastItem?.trace) {
+        onTraceUpdate(lastItem.trace);
+      }
+    }
+  }, [data, onTraceUpdate]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
