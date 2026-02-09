@@ -10,7 +10,18 @@ interface RegressionPanelProps {
 function getStoredTests(): RegressionTest[] {
   if (typeof window === 'undefined') return [];
   try {
-    return JSON.parse(sessionStorage.getItem('hippo-regression-tests') ?? '[]');
+    const raw: RegressionTest[] = JSON.parse(sessionStorage.getItem('hippo-regression-tests') ?? '[]');
+    // Deduplicate by sourceTraceId (cleans up pre-existing duplicates)
+    const seen = new Set<string>();
+    const deduped = raw.filter(t => {
+      if (seen.has(t.sourceTraceId)) return false;
+      seen.add(t.sourceTraceId);
+      return true;
+    });
+    if (deduped.length !== raw.length) {
+      sessionStorage.setItem('hippo-regression-tests', JSON.stringify(deduped));
+    }
+    return deduped;
   } catch { return []; }
 }
 

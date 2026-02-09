@@ -24,7 +24,13 @@ export function EvalPanel({ sessionId, hasMemory }: EvalPanelProps) {
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<FullEvalResult | null>(null);
   const [selectedQuery, setSelectedQuery] = useState(0);
+  const [customQuery, setCustomQuery] = useState('');
+  const [useCustom, setUseCustom] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const activeQuery = useCustom && customQuery.trim()
+    ? customQuery.trim()
+    : evalQueries[selectedQuery];
 
   const runEval = async () => {
     setRunning(true);
@@ -36,7 +42,7 @@ export function EvalPanel({ sessionId, hasMemory }: EvalPanelProps) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          query: evalQueries[selectedQuery],
+          query: activeQuery,
           sessionId,
         }),
       });
@@ -70,19 +76,39 @@ export function EvalPanel({ sessionId, hasMemory }: EvalPanelProps) {
           {evalQueries.map((q, i) => (
             <button
               key={i}
-              onClick={() => setSelectedQuery(i)}
+              onClick={() => { setSelectedQuery(i); setUseCustom(false); }}
               className={`w-full text-left px-2 py-1 text-xs transition-all border border-[#1a1a1a] ${
-                selectedQuery === i
+                !useCustom && selectedQuery === i
                   ? 'text-[#0abdc6] border-[#0abdc6]'
                   : 'text-[#404040] hover:text-[#b0b0b0]'
               }`}
               style={{
-                background: selectedQuery === i ? 'rgba(10, 189, 198, 0.05)' : 'transparent',
+                background: !useCustom && selectedQuery === i ? 'rgba(10, 189, 198, 0.05)' : 'transparent',
               }}
             >
-              <span style={{ color: selectedQuery === i ? '#0abdc6' : '#404040' }}>{i + 1}{'>'}</span> {q}
+              <span style={{ color: !useCustom && selectedQuery === i ? '#0abdc6' : '#404040' }}>{i + 1}{'>'}</span> {q}
             </button>
           ))}
+
+          {/* Custom query input */}
+          <div
+            className={`border transition-all ${
+              useCustom ? 'border-[#0abdc6]' : 'border-[#1a1a1a]'
+            }`}
+            style={{ background: useCustom ? 'rgba(10, 189, 198, 0.05)' : 'transparent' }}
+          >
+            <div className="flex items-center px-2 py-1 gap-2">
+              <span className="text-xs" style={{ color: useCustom ? '#0abdc6' : '#404040' }}>$</span>
+              <input
+                value={customQuery}
+                onChange={(e) => { setCustomQuery(e.target.value); setUseCustom(true); }}
+                onFocus={() => { if (customQuery.trim()) setUseCustom(true); }}
+                placeholder="custom eval query..."
+                className="flex-1 text-xs outline-none bg-transparent"
+                style={{ color: useCustom ? '#0abdc6' : '#b0b0b0' }}
+              />
+            </div>
+          </div>
         </div>
 
         {/* Run Button */}
