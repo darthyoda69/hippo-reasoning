@@ -32,6 +32,7 @@ export async function POST(req: Request) {
     model: anthropic('claude-sonnet-4-20250514'),
     system: systemPrompt,
     messages,
+    maxSteps: 5,
     tools: {
       searchKnowledge: tool({
         description: 'Search for factual information about a topic. Use this when you need to look up data, statistics, or facts.',
