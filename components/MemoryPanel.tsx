@@ -23,9 +23,17 @@ export function MemoryPanel({ traces, onRefresh, sessionId, onDiffSelect, diffSe
       const res = await fetch('/api/regressions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'create', traceId: trace.id }),
+        body: JSON.stringify({ action: 'create', traceId: trace.id, trace }),
       });
       if (res.ok) {
+        const data = await res.json();
+        if (data.test) {
+          const stored = JSON.parse(sessionStorage.getItem('hippo-regression-tests') ?? '[]');
+          if (!stored.some((t: { id: string }) => t.id === data.test.id)) {
+            stored.push(data.test);
+            sessionStorage.setItem('hippo-regression-tests', JSON.stringify(stored));
+          }
+        }
         setSavedId(trace.id);
         setTimeout(() => setSavedId(null), 3000);
       }

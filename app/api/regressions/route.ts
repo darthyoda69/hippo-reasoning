@@ -21,10 +21,14 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
 
   // Create regression from trace
-  if (body.action === 'create' && body.traceId) {
-    const trace = await hippoMemory.get(body.traceId);
+  if (body.action === 'create') {
+    // Accept full trace from client (serverless instances don't share memory)
+    let trace = body.trace;
+    if (!trace && body.traceId) {
+      trace = await hippoMemory.get(body.traceId);
+    }
     if (!trace) {
-      return Response.json({ error: 'Trace not found' }, { status: 404 });
+      return Response.json({ error: 'Trace not found — pass full trace object in body' }, { status: 400 });
     }
 
     const test = await hippoRegressions.createFromTrace(trace, body.name);
@@ -32,10 +36,13 @@ export async function POST(req: NextRequest) {
   }
 
   // Run a regression test
-  if (body.action === 'run' && body.testId) {
-    const test = await hippoRegressions.get(body.testId);
+  if (body.action === 'run' && (body.testId || body.test)) {
+    let test = body.test;
+    if (!test && body.testId) {
+      test = await hippoRegressions.get(body.testId);
+    }
     if (!test) {
-      return Response.json({ error: 'Test not found' }, { status: 404 });
+      return Response.json({ error: 'Test not found — pass full test object in body' }, { status: 400 });
     }
 
     // Run the query through the agent
@@ -81,8 +88,12 @@ export async function POST(req: NextRequest) {
 
   // Run ALL regression tests (the deploy gate)
   if (body.action === 'run_all') {
-    const tests = await hippoRegressions.getAll();
-    if (tests.length === 0) {
+    // Accept tests from client (serverless instances don't share memory)
+    let tests = body.tests;
+    if (!tests || tests.length === 0) {
+      tests = await hippoRegressions.getAll();
+    }
+    if (!tests || tests.length === 0) {
       return Response.json({ error: 'No regression tests', gate: 'skip' }, { status: 400 });
     }
 

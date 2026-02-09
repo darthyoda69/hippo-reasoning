@@ -38,9 +38,19 @@ export function TracePanel({ trace, isStreaming }: TracePanelProps) {
         body: JSON.stringify({
           action: 'create',
           traceId: trace.id,
+          trace,
         }),
       });
       if (res.ok) {
+        const data = await res.json();
+        // Store regression test in sessionStorage (serverless instances don't share memory)
+        if (data.test) {
+          const stored = JSON.parse(sessionStorage.getItem('hippo-regression-tests') ?? '[]');
+          if (!stored.some((t: { id: string }) => t.id === data.test.id)) {
+            stored.push(data.test);
+            sessionStorage.setItem('hippo-regression-tests', JSON.stringify(stored));
+          }
+        }
         setSaved(true);
         setTimeout(() => setSaved(false), 3000);
       }

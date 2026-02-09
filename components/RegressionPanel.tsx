@@ -7,6 +7,17 @@ interface RegressionPanelProps {
   sessionId: string;
 }
 
+function getStoredTests(): RegressionTest[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    return JSON.parse(sessionStorage.getItem('hippo-regression-tests') ?? '[]');
+  } catch { return []; }
+}
+
+function saveStoredTests(tests: RegressionTest[]) {
+  sessionStorage.setItem('hippo-regression-tests', JSON.stringify(tests));
+}
+
 export function RegressionPanel({ sessionId }: RegressionPanelProps) {
   const [tests, setTests] = useState<RegressionTest[]>([]);
   const [runningAll, setRunningAll] = useState(false);
@@ -17,19 +28,19 @@ export function RegressionPanel({ sessionId }: RegressionPanelProps) {
   } | null>(null);
   const [expandedTest, setExpandedTest] = useState<string | null>(null);
 
-  const refreshTests = useCallback(async () => {
-    try {
-      const res = await fetch('/api/regressions');
-      const data = await res.json();
-      setTests(data.tests ?? []);
-    } catch { /* ignore */ }
+  // Load tests from sessionStorage on mount
+  useEffect(() => {
+    setTests(getStoredTests());
   }, []);
 
+  // Re-sync from sessionStorage periodically (picks up saves from TracePanel/MemoryPanel)
   useEffect(() => {
-    refreshTests();
-    const interval = setInterval(refreshTests, 5000);
+    const interval = setInterval(() => {
+      const stored = getStoredTests();
+      if (stored.length !== tests.length) setTests(stored);
+    }, 2000);
     return () => clearInterval(interval);
-  }, [refreshTests]);
+  }, [tests.length]);
 
   const runAllRegressions = async () => {
     setRunningAll(true);
@@ -38,11 +49,35 @@ export function RegressionPanel({ sessionId }: RegressionPanelProps) {
       const res = await fetch('/api/regressions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'run_all' }),
+        body: JSON.stringify({ action: 'run_all', tests }),
       });
       const data = await res.json();
       setGateResult(data);
-      refreshTests();
+      // Update tests with run results from server
+      if (data.results) {
+        const updated = tests.map(t => {
+          const result = data.results.find((r: { testId: string }) => r.testId === t.id);
+          if (result) {
+            return {
+              ...t,
+              lastRunAt: Date.now(),
+              lastRunPassed: result.passed,
+              runs: [...t.runs, {
+                id: `run-${Date.now()}-${t.id}`,
+                timestamp: Date.now(),
+                passed: result.passed,
+                score: result.score,
+                actualToolCalls: [],
+                actualStepCount: 1,
+                delta: result.score - t.minScore,
+              }],
+            };
+          }
+          return t;
+        });
+        setTests(updated);
+        saveStoredTests(updated);
+      }
     } catch {
       setGateResult({ gate: 'ERROR', results: [], summary: 'Failed to run' });
     } finally {
@@ -50,13 +85,10 @@ export function RegressionPanel({ sessionId }: RegressionPanelProps) {
     }
   };
 
-  const deleteTest = async (testId: string) => {
-    await fetch('/api/regressions', {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ testId }),
-    });
-    refreshTests();
+  const deleteTest = (testId: string) => {
+    const updated = tests.filter(t => t.id !== testId);
+    setTests(updated);
+    saveStoredTests(updated);
   };
 
   const passing = tests.filter(t => t.lastRunPassed === true).length;
