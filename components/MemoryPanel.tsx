@@ -25,125 +25,157 @@ export function MemoryPanel({ traces, onRefresh, sessionId }: MemoryPanelProps) 
 
   if (traces.length === 0) {
     return (
-      <div className="h-full flex flex-col items-center justify-center text-center p-8">
-        <div className="text-2xl mb-3 opacity-30">🧠</div>
-        <p className="text-sm text-[#444]">No reasoning traces stored yet</p>
-        <p className="text-xs text-[#333] mt-1">
-          Chat with the agent — traces are captured automatically
-        </p>
+      <div className="h-full flex flex-col items-center justify-center p-8 font-mono" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+        <div className="text-center">
+          <p className="text-sm" style={{ color: '#b0b0b0' }}>$ hippo memory --list</p>
+          <p className="text-sm mt-4" style={{ color: '#404040' }}>0 traces stored</p>
+          <p className="text-xs mt-2" style={{ color: '#404040' }}>run agent to capture traces</p>
+        </div>
       </div>
     );
   }
 
   const totalSteps = traces.reduce((sum, t) => sum + t.stepCount, 0);
   const avgLatency = Math.round(traces.reduce((sum, t) => sum + t.totalLatencyMs, 0) / traces.length);
-  const allTools = [...new Set(traces.flatMap(t => t.toolsUsed))];
 
   return (
-    <div className="h-full overflow-y-auto">
-      {/* Stats bar */}
-      <div className="sticky top-0 bg-[#0a0a0a] border-b border-[#1e1e1e] px-4 py-2.5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4 text-[10px] text-[#555]">
-            <span>{traces.length} traces</span>
-            <span>{totalSteps} total steps</span>
-            <span>{avgLatency}ms avg</span>
+    <div className="h-full overflow-y-auto" style={{ fontFamily: 'JetBrains Mono, monospace', backgroundColor: '#0a0a0a' }}>
+      {/* Stats bar - terminal style */}
+      <div className="sticky top-0 border-b px-4 py-3" style={{ backgroundColor: '#0a0a0a', borderColor: '#1a1a1a', color: '#b0b0b0' }}>
+        <div className="flex items-center justify-between text-xs">
+          <div className="font-mono">
+            traces: {traces.length} | steps: {totalSteps} | avg: {avgLatency}ms
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-4">
             <button
               onClick={onRefresh}
-              className="text-[10px] text-[#555] hover:text-[#888] transition-colors"
+              className="transition-colors hover:glow-green"
+              style={{ color: '#0abdc6', textDecoration: 'underline', cursor: 'pointer' }}
             >
               refresh
             </button>
             <button
               onClick={handleClear}
               disabled={clearing}
-              className="text-[10px] text-[#ff4444]/50 hover:text-[#ff4444] transition-colors"
+              className="transition-colors"
+              style={{
+                color: clearing ? '#ff0040' : '#ff0040',
+                textDecoration: 'underline',
+                cursor: clearing ? 'not-allowed' : 'pointer',
+                opacity: clearing ? 0.5 : 1
+              }}
             >
-              {clearing ? 'clearing...' : 'clear all'}
+              {clearing ? 'clear --all' : 'clear --all'}
             </button>
           </div>
         </div>
       </div>
 
       {/* Trace list */}
-      <div className="p-3 space-y-2">
-        {traces.map((trace) => (
-          <div
-            key={trace.id}
-            className="border border-[#1e1e1e] rounded-lg overflow-hidden hover:border-[#333] transition-colors"
-          >
-            {/* Trace header */}
+      <div className="p-3 space-y-1">
+        {traces.map((trace, idx) => (
+          <div key={trace.id} style={{ borderColor: '#1a1a1a' }}>
+            {/* Trace header - log entry style */}
             <button
               onClick={() => setExpandedTrace(expandedTrace === trace.id ? null : trace.id)}
-              className="w-full text-left px-3 py-2.5 flex items-center gap-3"
+              className="w-full text-left px-3 py-2 font-mono text-xs transition-colors hover:glow-green"
+              style={{
+                color: '#00ff41',
+                backgroundColor: '#0a0a0a',
+                border: `1px solid #1a1a1a`,
+                fontFamily: 'JetBrains Mono, monospace'
+              }}
             >
-              <div className="flex-1 min-w-0">
-                <div className="text-xs text-[#ededed] truncate">{trace.query}</div>
-                <div className="flex items-center gap-3 mt-1 text-[10px] text-[#555]">
-                  <span>{trace.stepCount} steps</span>
-                  <span>{trace.totalLatencyMs}ms</span>
-                  {trace.toolsUsed.map(t => (
-                    <span key={t} className="text-[#00d4ff]/60">{t}</span>
-                  ))}
-                </div>
-              </div>
-              <span className="text-[10px] text-[#333]">
-                {expandedTrace === trace.id ? '▼' : '▶'}
+              <span style={{ color: '#404040' }}>[trace-{String(idx + 1).padStart(3, '0')}]</span>
+              {' '}
+              <span style={{ color: '#b0b0b0' }}>'{trace.query.slice(0, 45)}{trace.query.length > 45 ? '...' : ''}'</span>
+              {' '}
+              <span style={{ color: '#404040' }}>|</span>
+              {' '}
+              <span style={{ color: '#b0b0b0' }}>{trace.stepCount} steps</span>
+              {' '}
+              <span style={{ color: '#404040' }}>|</span>
+              {' '}
+              <span style={{ color: '#b0b0b0' }}>{trace.totalLatencyMs}ms</span>
+              {trace.toolsUsed.length > 0 && (
+                <>
+                  {' '}
+                  <span style={{ color: '#404040' }}>|</span>
+                  {' '}
+                  <span style={{ color: '#0abdc6' }}>tools: {trace.toolsUsed.join(', ')}</span>
+                </>
+              )}
+              {' '}
+              <span style={{ color: '#404040' }}>
+                {expandedTrace === trace.id ? '[-]' : '[+]'}
               </span>
             </button>
 
-            {/* Expanded trace steps */}
+            {/* Expanded trace steps - terminal output */}
             {expandedTrace === trace.id && (
-              <div className="border-t border-[#1e1e1e] bg-[#0a0a0a] px-3 py-2 space-y-1">
-                {trace.steps.map((step) => (
-                  <div key={step.id} className="flex items-start gap-2 py-0.5">
-                    <span className="text-[10px] w-16 text-right text-[#444] font-mono shrink-0">
-                      {step.type === 'tool_call' ? '⚡ call' :
-                       step.type === 'tool_result' ? '✓ result' :
-                       step.type === 'user_message' ? '→ user' :
-                       step.type === 'assistant_message' ? '← agent' : '💭'}
-                    </span>
-                    <span className="text-[10px] text-[#666] font-mono break-all">
-                      {step.content.length > 150 ? step.content.slice(0, 150) + '...' : step.content}
-                    </span>
-                  </div>
-                ))}
+              <div className="font-mono text-xs" style={{ backgroundColor: '#000000', borderColor: '#1a1a1a', border: '1px solid #1a1a1a', borderTop: 'none' }}>
+                <div className="px-3 py-2 space-y-0 max-h-64 overflow-y-auto">
+                  {trace.steps.map((step, stepIdx) => (
+                    <div key={step.id} className="py-1" style={{ color: '#b0b0b0' }}>
+                      <span style={{ color: '#404040' }}>{'>'}</span>
+                      {' '}
+                      <span style={{ color: '#0abdc6' }}>
+                        {step.type === 'tool_call' ? 'call' :
+                         step.type === 'tool_result' ? 'result' :
+                         step.type === 'user_message' ? 'user' :
+                         step.type === 'assistant_message' ? 'agent' : 'memory'}
+                      </span>
+                      {' '}
+                      <span style={{ color: '#b0b0b0' }}>
+                        {step.content.length > 120 ? step.content.slice(0, 120) + '...' : step.content}
+                      </span>
+                    </div>
+                  ))}
 
-                {/* Summary */}
-                {trace.summary && (
-                  <div className="mt-2 pt-2 border-t border-[#1e1e1e]">
-                    <span className="text-[10px] text-[#555]">Summary: </span>
-                    <span className="text-[10px] text-[#888] font-mono">{trace.summary}</span>
-                  </div>
-                )}
+                  {/* Summary */}
+                  {trace.summary && (
+                    <div className="py-1 mt-1" style={{ borderTop: '1px solid #1a1a1a', paddingTop: '0.5rem', color: '#00ff41' }}>
+                      <span style={{ color: '#404040' }}>{'>'}</span>
+                      {' '}
+                      <span style={{ color: '#00ff41' }}>summary:</span>
+                      {' '}
+                      <span style={{ color: '#b0b0b0' }}>{trace.summary}</span>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>
         ))}
       </div>
 
-      {/* Memory context preview */}
+      {/* Memory context preview - code block style */}
       {traces.length > 0 && (
-        <div className="border-t border-[#1e1e1e] px-4 py-3">
-          <div className="text-[10px] text-[#555] uppercase tracking-wider mb-2">
-            Active reasoning context
+        <div className="border-t px-4 py-3" style={{ borderColor: '#1a1a1a' }}>
+          <div className="text-xs font-mono mb-2" style={{ color: '#404040' }}>
+            --- reasoning context ---
           </div>
-          <div className="bg-[#111] rounded border border-[#1e1e1e] p-3 text-[10px] font-mono text-[#666] max-h-32 overflow-y-auto">
+          <div className="font-mono text-xs max-h-40 overflow-y-auto p-3" style={{
+            backgroundColor: '#000000',
+            border: '1px solid #1a1a1a',
+            color: '#b0b0b0'
+          }}>
             {traces.slice(0, 3).map((t, i) => (
               <div key={t.id} className="mb-2">
-                <span className="text-[#00d4ff]">[Trace {i + 1}]</span>{' '}
-                <span className="text-[#888]">&quot;{t.query.slice(0, 60)}&quot;</span>
+                <span style={{ color: '#00ff41' }}>{'$'}</span>
+                {' '}
+                <span style={{ color: '#0abdc6' }}>trace-query</span>
+                {' '}
+                <span style={{ color: '#b0b0b0' }}>"{t.query.slice(0, 50)}{t.query.length > 50 ? '...' : ''}"</span>
                 <br />
-                <span className="text-[#444]">
-                  Tools: {t.toolsUsed.join(', ') || 'none'} | {t.stepCount} steps | {t.totalLatencyMs}ms
+                <span style={{ color: '#404040' }}>
+                  tools: {t.toolsUsed.join(', ') || 'none'} | steps: {t.stepCount} | latency: {t.totalLatencyMs}ms
                 </span>
               </div>
             ))}
           </div>
-          <p className="text-[10px] text-[#333] mt-2">
-            This context is injected into the agent&apos;s system prompt when memory is ON.
+          <p className="text-xs mt-2" style={{ color: '#404040' }}>
+            context injected to agent system prompt when memory is ON
           </p>
         </div>
       )}

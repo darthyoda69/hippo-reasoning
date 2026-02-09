@@ -9,19 +9,19 @@ interface TracePanelProps {
 }
 
 const stepIcons: Record<TraceStep['type'], string> = {
-  user_message: '→',
-  assistant_message: '←',
-  tool_call: '⚡',
-  tool_result: '✓',
-  reasoning: '💭',
+  user_message: '>>',
+  assistant_message: '<<',
+  tool_call: '--',
+  tool_result: '++',
+  reasoning: '..',
 };
 
 const stepColors: Record<TraceStep['type'], string> = {
-  user_message: '#888',
-  assistant_message: '#ededed',
-  tool_call: '#00d4ff',
-  tool_result: '#00ff88',
-  reasoning: '#ffaa00',
+  user_message: '#b0b0b0',
+  assistant_message: '#b0b0b0',
+  tool_call: '#0abdc6',
+  tool_result: '#00ff41',
+  reasoning: '#cccc00',
 };
 
 export function TracePanel({ trace, isStreaming }: TracePanelProps) {
@@ -51,74 +51,76 @@ export function TracePanel({ trace, isStreaming }: TracePanelProps) {
 
   if (!trace) {
     return (
-      <div className="h-full flex flex-col items-center justify-center text-center p-8">
-        <div className="text-2xl mb-3 opacity-30">⚡</div>
-        <p className="text-sm text-[#444]">
-          Send a message to see the reasoning trace
+      <div className="h-full flex flex-col items-center justify-center p-8 font-mono" style={{ background: '#0a0a0a', color: '#404040' }}>
+        <p className="text-sm mb-2">
+          $ trace --wait
         </p>
-        <p className="text-xs text-[#333] mt-1">
-          Every step, tool call, and decision — in real-time
+        <p className="text-xs" style={{ color: '#404040' }}>
+          send a message to see the reasoning trace
         </p>
       </div>
     );
   }
 
   return (
-    <div className="h-full overflow-y-auto">
+    <div className="h-full overflow-y-auto font-mono" style={{ background: '#0a0a0a', color: '#b0b0b0' }}>
       {/* Trace header */}
-      <div className="sticky top-0 bg-[#0a0a0a] border-b border-[#1e1e1e] px-4 py-2.5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-mono text-[#555]">trace/{trace.id}</span>
+      <div className="sticky top-0 px-4 py-2.5 border-b" style={{ borderColor: '#404040', background: '#0a0a0a' }}>
+        <div className="flex items-center justify-between mb-1.5">
+          <div className="flex items-center gap-3">
+            <span className="text-xs" style={{ color: '#00ff41' }}>
+              $ trace/{trace.id}
+            </span>
             {isStreaming && (
-              <span className="flex items-center gap-1 text-[10px] text-[#00d4ff]">
-                <span className="w-1 h-1 rounded-full bg-[#00d4ff] live-pulse" />
-                live
+              <span className="flex items-center gap-1 text-[10px]" style={{ color: '#00ff41' }}>
+                <span
+                  className="w-1 h-1 rounded-full live-pulse cursor-blink"
+                  style={{ background: '#00ff41' }}
+                />
+                LIVE
               </span>
             )}
           </div>
-          <div className="flex items-center gap-3 text-[10px] text-[#555]">
-            <span>{trace.stepCount} steps</span>
-            <span>{trace.totalLatencyMs}ms</span>
-            <span>{trace.toolsUsed.length} tools</span>
-          </div>
+        </div>
+        <div className="flex items-center gap-4 text-[10px]" style={{ color: '#404040' }}>
+          <span>steps: {trace.stepCount}</span>
+          <span>latency: {trace.totalLatencyMs}ms</span>
+          <span>tools: {trace.toolsUsed.length}</span>
         </div>
       </div>
 
       {/* Steps */}
-      <div className="p-4 space-y-1">
+      <div className="p-4 space-y-0">
         {trace.steps.map((step, i) => (
-          <div key={step.id} className="trace-step">
-            <div className="flex items-start gap-3 py-1.5 group">
-              {/* Timeline */}
-              <div className="flex flex-col items-center">
-                <span
-                  className="w-5 h-5 rounded flex items-center justify-center text-[10px] font-mono"
-                  style={{ color: stepColors[step.type], background: `${stepColors[step.type]}15` }}
-                >
-                  {stepIcons[step.type]}
-                </span>
-                {i < trace.steps.length - 1 && (
-                  <div className="w-px h-full min-h-[8px] bg-[#1e1e1e]" />
-                )}
-              </div>
-
-              {/* Content */}
+          <div
+            key={step.id}
+            className="trace-step py-1"
+            style={{ borderLeft: '2px solid #404040', paddingLeft: '12px', marginLeft: '6px' }}
+          >
+            <div className="flex items-start gap-2 text-xs font-mono">
+              <span style={{ color: stepColors[step.type], minWidth: '16px' }}>
+                {stepIcons[step.type]}
+              </span>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-0.5">
-                  <span className="text-[10px] font-medium uppercase tracking-wider" style={{ color: stepColors[step.type] }}>
-                    {step.type.replace(/_/g, ' ')}
+                  <span style={{ color: stepColors[step.type] }}>
+                    {step.type.replace(/_/g, '_')}
                   </span>
                   {step.metadata?.toolName && (
-                    <span className="text-[10px] font-mono text-[#444]">
-                      {step.metadata.toolName}
+                    <span style={{ color: '#0abdc6' }}>
+                      ({step.metadata.toolName})
                     </span>
                   )}
-                  <span className="text-[10px] text-[#333] opacity-0 group-hover:opacity-100 transition-opacity">
-                    {step.metadata?.latencyMs}ms
-                  </span>
+                  {step.metadata?.latencyMs && (
+                    <span style={{ color: '#404040' }}>
+                      [{step.metadata.latencyMs}ms]
+                    </span>
+                  )}
                 </div>
-                <p className="text-xs text-[#999] leading-relaxed font-mono break-all">
+                <p
+                  className="text-xs leading-relaxed break-all"
+                  style={{ color: '#b0b0b0', wordBreak: 'break-word' }}
+                >
                   {step.content.length > 300 ? step.content.slice(0, 300) + '...' : step.content}
                 </p>
               </div>
@@ -127,48 +129,41 @@ export function TracePanel({ trace, isStreaming }: TracePanelProps) {
         ))}
 
         {isStreaming && (
-          <div className="flex items-center gap-3 py-2">
-            <div className="w-5 h-5 rounded flex items-center justify-center bg-[#00d4ff]/10">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#00d4ff] live-pulse" />
-            </div>
-            <span className="text-[10px] text-[#555]">Capturing reasoning steps...</span>
+          <div className="flex items-center gap-2 py-2 text-xs" style={{ color: '#404040' }}>
+            <span className="cursor-blink live-pulse" style={{ color: '#00ff41' }}>|</span>
+            <span>capturing reasoning steps...</span>
           </div>
         )}
       </div>
 
       {/* Trace summary footer + Save as Regression */}
       {!isStreaming && trace.steps.length > 0 && (
-        <div className="border-t border-[#1e1e1e] px-4 py-3 mt-2">
-          <div className="grid grid-cols-3 gap-4 text-center mb-3">
-            <div>
-              <div className="text-lg font-semibold text-[#ededed]">{trace.stepCount}</div>
-              <div className="text-[10px] text-[#555] uppercase tracking-wider">Steps</div>
-            </div>
-            <div>
-              <div className="text-lg font-semibold text-[#00d4ff]">{trace.totalLatencyMs}ms</div>
-              <div className="text-[10px] text-[#555] uppercase tracking-wider">Latency</div>
-            </div>
-            <div>
-              <div className="text-lg font-semibold text-[#00ff88]">{trace.toolsUsed.length}</div>
-              <div className="text-[10px] text-[#555] uppercase tracking-wider">Tools</div>
-            </div>
+        <div className="border-t px-4 py-3 mt-2" style={{ borderColor: '#404040' }}>
+          <div className="mb-3 text-xs" style={{ color: '#404040' }}>
+            steps: {trace.stepCount} | latency: {trace.totalLatencyMs}ms | tools: {trace.toolsUsed.length}
           </div>
 
           {/* Save as Regression Test button */}
           <button
             onClick={handleSaveAsRegression}
             disabled={saving || saved}
-            className={`w-full py-2 rounded-lg text-xs font-medium transition-all ${
-              saved
-                ? 'bg-[#00ff88]/10 text-[#00ff88] border border-[#00ff88]/20'
-                : 'bg-[#1a1a2e] text-[#00d4ff] border border-[#00d4ff]/20 hover:bg-[#00d4ff]/10'
-            } disabled:opacity-50`}
+            className="w-full py-2 text-xs font-mono transition-all text-left px-3 mb-2"
+            style={{
+              border: saved ? '1px solid #00ff41' : '1px solid #00ff41',
+              background: saved ? '#0a0a0a' : '#0a0a0a',
+              color: saved ? '#00ff41' : '#00ff41',
+              cursor: saving || saved ? 'default' : 'pointer',
+              opacity: saving || saved ? 0.6 : 1,
+            }}
           >
-            {saved ? '✓ Saved as regression test' : saving ? 'Saving...' : '🛡 Save as Regression Test'}
+            {saved ? '$ hippo save --regression [OK]' : saving ? '$ hippo save --regression...' : '$ hippo save --regression'}
           </button>
-          <p className="text-[10px] text-[#333] mt-1.5 text-center">
-            Creates a test that checks future deployments against this trace&apos;s behavior
-          </p>
+
+          {saved && (
+            <p className="text-[10px]" style={{ color: '#00ff41' }}>
+              [OK] saved as regression test
+            </p>
+          )}
         </div>
       )}
     </div>

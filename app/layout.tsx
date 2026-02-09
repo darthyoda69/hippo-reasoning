@@ -2,11 +2,11 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Hippo Reasoning — Agent Reliability Infrastructure for Vercel AI SDK',
+  title: 'hippo // agent reliability infrastructure',
   description: 'Open-source reasoning memory, trace replay, and regression gates for Vercel AI SDK agents. CI/CD for agent behavior.',
   openGraph: {
-    title: 'Hippo Reasoning',
-    description: 'Agent reliability infrastructure for Vercel AI SDK — reasoning memory, replay, regression gates',
+    title: 'hippo // agent CI/CD',
+    description: 'Reasoning memory. Trace replay. Regression gates. The CI/CD layer for agent behavior.',
     type: 'website',
   },
 };
@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className="dark">
-      <body className="min-h-screen bg-[#0a0a0a] text-[#ededed] antialiased">
+      <body className="min-h-screen bg-black text-[#b0b0b0] antialiased">
         {children}
       </body>
     </html>

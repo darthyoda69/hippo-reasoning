@@ -52,127 +52,150 @@ export function EvalPanel({ sessionId, hasMemory }: EvalPanelProps) {
   };
 
   return (
-    <div className="h-full overflow-y-auto">
-      {/* Config */}
-      <div className="p-4 border-b border-[#1e1e1e]">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-xs font-medium text-[#ededed]">Eval: With vs Without Reasoning Memory</h3>
-          <div className={`text-[10px] px-2 py-0.5 rounded ${
-            hasMemory ? 'bg-[#00ff88]/10 text-[#00ff88]' : 'bg-[#333] text-[#666]'
-          }`}>
-            {hasMemory ? 'Memory available' : 'No memory yet'}
-          </div>
+    <div className="h-full overflow-y-auto bg-black font-mono text-[#b0b0b0]" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+      {/* Header */}
+      <div className="p-4 border-b border-[#1a1a1a] bg-black">
+        <div className="text-[#00ff41] text-sm mb-4">$ hippo eval --compare</div>
+
+        {/* Memory Status */}
+        <div className="mb-4 flex items-center gap-2">
+          <span className={hasMemory ? 'text-[#00ff41]' : 'text-[#404040]'}>
+            [{hasMemory ? 'MEMORY: AVAILABLE' : 'NO MEMORY'}]
+          </span>
         </div>
 
-        <div className="space-y-2 mb-3">
+        {/* Query Selection */}
+        <div className="mb-4 space-y-1">
+          <div className="text-[#404040] text-xs mb-2">select query:</div>
           {evalQueries.map((q, i) => (
             <button
               key={i}
               onClick={() => setSelectedQuery(i)}
-              className={`w-full text-left px-3 py-2 rounded text-xs transition-all ${
+              className={`w-full text-left px-2 py-1 text-xs transition-all border border-[#1a1a1a] ${
                 selectedQuery === i
-                  ? 'bg-[#1a1a2e] text-[#ededed] border border-[#00d4ff]/20'
-                  : 'text-[#666] border border-[#1e1e1e] hover:border-[#333]'
+                  ? 'text-[#0abdc6] border-[#0abdc6]'
+                  : 'text-[#404040] hover:text-[#b0b0b0]'
               }`}
+              style={{
+                background: selectedQuery === i ? 'rgba(10, 189, 198, 0.05)' : 'transparent',
+              }}
             >
-              {q}
+              <span style={{ color: selectedQuery === i ? '#0abdc6' : '#404040' }}>{i + 1}></span> {q}
             </button>
           ))}
         </div>
 
+        {/* Run Button */}
         <button
           onClick={runEval}
           disabled={running}
-          className="w-full py-2.5 bg-[#ededed] text-[#0a0a0a] rounded-lg text-xs font-medium hover:bg-white transition-colors disabled:opacity-30"
+          className={`w-full px-4 py-2 text-xs border transition-all ${
+            running
+              ? 'opacity-40 border-[#404040] text-[#404040]'
+              : 'border-[#00ff41] text-[#00ff41] hover:bg-[#00ff41] hover:text-black'
+          }`}
+          style={{
+            background: running ? 'transparent' : 'transparent',
+          }}
         >
-          {running ? 'Running eval (comparing both paths)...' : 'Run Eval Comparison'}
+          $ run eval --with-memory --without-memory
         </button>
 
         {error && (
-          <p className="text-xs text-[#ff4444] mt-2">{error}</p>
+          <div className="mt-3 text-xs text-[#ff0040] border border-[#ff0040] p-2 border-[#1a1a1a]">
+            ERROR: {error}
+          </div>
         )}
 
         {!hasMemory && (
-          <p className="text-[10px] text-[#555] mt-2">
-            Tip: Chat with the agent first to build up reasoning memory, then run the eval to see the improvement.
-          </p>
+          <div className="mt-3 text-[10px] text-[#404040]">
+            -- tip: chat with agent first to build reasoning memory --
+          </div>
         )}
       </div>
 
       {/* Results */}
       {result && (
-        <div className="p-4 space-y-4">
-          {/* Score comparison */}
+        <div className="p-4 space-y-4 bg-black">
+          {/* Score Comparison */}
           <div className="grid grid-cols-2 gap-3">
             <ScoreCard
-              label="Without Memory"
+              label="WITHOUT_MEMORY"
               score={result.withoutMemory.score}
               breakdown={result.withoutMemory.breakdown}
-              color="#888"
+              color="#b0b0b0"
               latency={result.latency.withoutMemory}
             />
             <ScoreCard
-              label="With Memory"
+              label="WITH_MEMORY"
               score={result.withMemory.score}
               breakdown={result.withMemory.breakdown}
-              color="#00d4ff"
+              color="#0abdc6"
               latency={result.latency.withMemory}
             />
           </div>
 
-          {/* Delta */}
-          <div className={`text-center py-3 rounded-lg border ${
-            result.delta > 0
-              ? 'bg-[#00ff88]/5 border-[#00ff88]/20 text-[#00ff88]'
-              : result.delta === 0
-              ? 'bg-[#333]/20 border-[#333] text-[#888]'
-              : 'bg-[#ff4444]/5 border-[#ff4444]/20 text-[#ff4444]'
-          }`}>
-            <div className="text-2xl font-semibold">
-              {result.delta > 0 ? '+' : ''}{result.delta}%
-            </div>
-            <div className="text-[10px] uppercase tracking-wider mt-0.5">
-              {result.delta > 0
-                ? 'Improvement with reasoning memory'
-                : result.delta === 0
-                ? 'No difference'
-                : 'Regression (unusual)'}
+          {/* Delta Display */}
+          <div className="border border-[#1a1a1a] p-3">
+            <div className="flex items-center justify-center gap-2">
+              <span className="text-[#404040]">delta:</span>
+              <div
+                className={`text-2xl font-bold ${
+                  result.delta > 0
+                    ? 'text-[#00ff41] glow-green'
+                    : result.delta === 0
+                    ? 'text-[#404040]'
+                    : 'text-[#ff0040] glow-red'
+                }`}
+              >
+                {result.delta > 0 ? '+' : ''}{result.delta}%
+              </div>
             </div>
             {!result.memoryAvailable && (
-              <div className="text-[10px] text-[#555] mt-1">
-                No stored traces available — chat more to build memory
+              <div className="text-[10px] text-[#404040] text-center mt-2">
+                -- no traces available --
               </div>
             )}
           </div>
 
-          {/* Response comparison */}
+          {/* Response Comparison */}
           <div className="space-y-3">
-            <h4 className="text-[10px] font-medium text-[#555] uppercase tracking-wider">Response Comparison</h4>
-            <div className="grid grid-cols-1 gap-2">
+            <div className="text-[#404040] text-xs">-- response comparison --</div>
+            <div className="space-y-2">
               <ResponseCard
-                label="Without Memory"
+                label="WITHOUT_MEMORY"
                 response={result.responses.withoutMemory}
-                color="#888"
+                color="#b0b0b0"
               />
               <ResponseCard
-                label="With Memory"
+                label="WITH_MEMORY"
                 response={result.responses.withMemory}
-                color="#00d4ff"
+                color="#0abdc6"
               />
             </div>
           </div>
         </div>
       )}
 
-      {/* Empty state */}
+      {/* Empty State */}
       {!result && !running && (
-        <div className="p-8 text-center">
-          <div className="text-2xl mb-3 opacity-30">📊</div>
-          <p className="text-xs text-[#444]">
-            Select a query and run the eval to compare agent performance with and without reasoning memory.
-          </p>
+        <div className="p-8 text-center border-t border-[#1a1a1a]">
+          <div className="text-[#404040] text-sm mb-2">$ hippo eval</div>
+          <div className="text-[#404040] text-xs">select query and run comparison</div>
         </div>
       )}
+
+      <style jsx>{`
+        .glow-green {
+          text-shadow: 0 0 10px #00ff41, 0 0 20px #00ff41;
+        }
+        .glow-red {
+          text-shadow: 0 0 10px #ff0040, 0 0 20px #ff0040;
+        }
+        .score-bar {
+          transition: width 0.3s ease-out;
+        }
+      `}</style>
     </div>
   );
 }
@@ -183,38 +206,34 @@ function ScoreCard({
   label: string; score: number; breakdown: EvalBreakdown; color: string; latency: number;
 }) {
   const dims = [
-    { key: 'relevance', label: 'Relevance' },
-    { key: 'completeness', label: 'Complete' },
-    { key: 'reasoning', label: 'Reasoning' },
-    { key: 'toolUsage', label: 'Tool Use' },
+    { key: 'relevance', label: 'relevance' },
+    { key: 'completeness', label: 'completeness' },
+    { key: 'reasoning', label: 'reasoning' },
+    { key: 'toolUsage', label: 'tool_usage' },
   ] as const;
 
   return (
-    <div className="border border-[#1e1e1e] rounded-lg p-3">
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-[10px] text-[#555] uppercase tracking-wider">{label}</span>
-        <span className="text-[10px] text-[#444]">{latency}ms</span>
+    <div className="border border-[#1a1a1a] p-3 bg-black">
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-xs" style={{ color }}>{label}</span>
+        <span className="text-[10px] text-[#404040]">{latency}ms</span>
       </div>
-      <div className="text-2xl font-semibold mb-3" style={{ color }}>
+      <div className="text-2xl font-bold mb-3" style={{ color }}>
         {score}%
       </div>
-      <div className="space-y-1.5">
-        {dims.map(d => (
-          <div key={d.key} className="flex items-center gap-2">
-            <span className="text-[10px] text-[#555] w-16">{d.label}</span>
-            <div className="flex-1 h-1 bg-[#1e1e1e] rounded-full overflow-hidden">
-              <div
-                className="h-full rounded-full score-bar"
-                style={{
-                  width: `${(breakdown[d.key] / 5) * 100}%`,
-                  background: color,
-                  opacity: 0.6,
-                }}
-              />
+      <div className="space-y-2">
+        {dims.map(d => {
+          const value = breakdown[d.key];
+          const barLength = Math.round((value / 5) * 10);
+          const emptyLength = 10 - barLength;
+          return (
+            <div key={d.key} className="flex items-center gap-2 text-[11px] font-mono">
+              <span className="text-[#404040] w-20">{d.label}</span>
+              <span style={{ color }}>[{'#'.repeat(barLength)}{'-'.repeat(emptyLength)}]</span>
+              <span className="text-[#404040] w-8 text-right">{value}/5</span>
             </div>
-            <span className="text-[10px] text-[#555] w-4 text-right">{breakdown[d.key]}</span>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
@@ -227,24 +246,28 @@ function ResponseCard({
 }) {
   const [expanded, setExpanded] = useState(false);
   const preview = response.slice(0, 200);
+  const displayText = expanded ? response : preview;
+  const lines = displayText.split('\n');
 
   return (
-    <div className="border border-[#1e1e1e] rounded-lg p-3">
-      <div className="flex items-center gap-2 mb-2">
-        <span className="w-2 h-2 rounded-full" style={{ background: color }} />
-        <span className="text-[10px] text-[#555] uppercase tracking-wider">{label}</span>
+    <div className="border border-[#1a1a1a] p-3 bg-black">
+      <div className="text-xs mb-2" style={{ color }}>
+        &gt; {label}
       </div>
-      <p className="text-[11px] text-[#888] leading-relaxed font-mono">
-        {expanded ? response : preview}
-        {response.length > 200 && (
-          <button
-            onClick={() => setExpanded(!expanded)}
-            className="text-[#00d4ff] ml-1 hover:underline"
-          >
-            {expanded ? ' show less' : '... show more'}
-          </button>
-        )}
-      </p>
+      <pre className="text-[10px] overflow-x-auto whitespace-pre-wrap break-words font-mono" style={{ color: '#b0b0b0' }}>
+        {lines.map((line, i) => (
+          <div key={i}>&gt; {line}</div>
+        ))}
+      </pre>
+      {response.length > 200 && (
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="text-[10px] mt-2 transition-all"
+          style={{ color }}
+        >
+          {expanded ? '-- collapse --' : '-- expand (more) --'}
+        </button>
+      )}
     </div>
   );
 }
