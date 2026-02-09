@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { nanoid } from 'nanoid';
 import { TraceBuilder, hippoMemory } from '@/lib/hippo';
 
-export const maxDuration = 30;
+export const maxDuration = 60;
 
 export async function POST(req: Request) {
   const { messages, sessionId = 'default', useMemory = true } = await req.json();

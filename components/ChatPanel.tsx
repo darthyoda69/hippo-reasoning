@@ -19,27 +19,22 @@ export function ChatPanel({ sessionId, onTraceUpdate, onStreamingChange }: ChatP
     body: { sessionId, useMemory },
     onResponse: async (response) => {
       onStreamingChange(true);
-      // Fetch trace after a short delay to let server store it
-      const traceId = response.headers.get('X-Hippo-Trace-Id');
-      if (traceId) {
-        setTimeout(async () => {
-          try {
-            const res = await fetch(`/api/traces?traceId=${traceId}`);
-            const data = await res.json();
-            if (data.trace) onTraceUpdate(data.trace);
-          } catch { /* retry below */ }
-        }, 500);
-      }
     },
     onFinish: async () => {
       onStreamingChange(false);
-      // Final trace fetch
-      try {
-        const res = await fetch(`/api/traces?sessionId=${sessionId}`);
-        const data = await res.json();
-        const latest = data.traces?.[0];
-        if (latest) onTraceUpdate(latest);
-      } catch { /* ignore */ }
+      // Retry trace fetch — server needs time to store after stream ends
+      for (let i = 0; i < 5; i++) {
+        await new Promise(r => setTimeout(r, 1000 * (i + 1)));
+        try {
+          const res = await fetch(`/api/traces?sessionId=${sessionId}`);
+          const data = await res.json();
+          const latest = data.traces?.[0];
+          if (latest) {
+            onTraceUpdate(latest);
+            return;
+          }
+        } catch { /* retry */ }
+      }
     },
   });
 
