@@ -83,9 +83,9 @@ export function ChatPanel({ sessionId, onTraceUpdate, onStreamingChange }: ChatP
             <div className="mb-6" style={{ color: '#404040' }}>
               <div style={{ color: '#00ff41' }} className="glow-green text-sm leading-6">
                 $ hippo.agent --ready<br/>
-                > initializing matrix terminal...<br/>
-                > memory engine: {useMemory ? 'online' : 'offline'}<br/>
-                > waiting for input...<br/>
+                {'>'} initializing matrix terminal...<br/>
+                {'>'} memory engine: {useMemory ? 'online' : 'offline'}<br/>
+                {'>'} waiting for input...<br/>
               </div>
             </div>
             <div className="space-y-2 w-full max-w-2xl">
@@ -116,7 +116,7 @@ export function ChatPanel({ sessionId, onTraceUpdate, onStreamingChange }: ChatP
                     e.currentTarget.style.textShadow = 'none';
                   }}
                 >
-                  > {q}
+                  {'>'} {q}
                 </button>
               ))}
             </div>
@@ -146,7 +146,7 @@ export function ChatPanel({ sessionId, onTraceUpdate, onStreamingChange }: ChatP
                   )}
                   {m.role === 'user' && (
                     <div style={{ color: '#404040' }} className="text-xs mb-1.5">
-                      > user input
+                      {'>'} user input
                     </div>
                   )}
                   <div className="whitespace-pre-wrap">{m.content}</div>

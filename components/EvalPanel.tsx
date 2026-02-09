@@ -80,7 +80,7 @@ export function EvalPanel({ sessionId, hasMemory }: EvalPanelProps) {
                 background: selectedQuery === i ? 'rgba(10, 189, 198, 0.05)' : 'transparent',
               }}
             >
-              <span style={{ color: selectedQuery === i ? '#0abdc6' : '#404040' }}>{i + 1}></span> {q}
+              <span style={{ color: selectedQuery === i ? '#0abdc6' : '#404040' }}>{i + 1}{'>'}</span> {q}
             </button>
           ))}
         </div>
