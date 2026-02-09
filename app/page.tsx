@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
+import Link from 'next/link';
 import { ChatPanel } from '@/components/ChatPanel';
 import { TracePanel } from '@/components/TracePanel';
 import { MemoryPanel } from '@/components/MemoryPanel';
@@ -11,13 +12,37 @@ import type { ReasoningTrace } from '@/lib/hippo';
 
 type RightTab = 'trace' | 'memory' | 'eval' | 'regression' | 'diff';
 
+function getSessionId(): string {
+  if (typeof window === 'undefined') return 'demo-0';
+  const stored = sessionStorage.getItem('hippo-session-id');
+  if (stored) return stored;
+  const id = 'demo-' + Date.now();
+  sessionStorage.setItem('hippo-session-id', id);
+  return id;
+}
+
+function getStoredTraces(): ReasoningTrace[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = sessionStorage.getItem('hippo-traces');
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+
 export default function Home() {
   const [rightTab, setRightTab] = useState<RightTab>('trace');
   const [currentTrace, setCurrentTrace] = useState<ReasoningTrace | null>(null);
-  const [storedTraces, setStoredTraces] = useState<ReasoningTrace[]>([]);
+  const [storedTraces, setStoredTraces] = useState<ReasoningTrace[]>(() => getStoredTraces());
   const [isStreaming, setIsStreaming] = useState(false);
-  const [sessionId] = useState('demo-' + Date.now());
+  const [sessionId] = useState(() => getSessionId());
   const [diffTraces, setDiffTraces] = useState<[ReasoningTrace | null, ReasoningTrace | null]>([null, null]);
+
+  // Persist traces to sessionStorage whenever they change
+  useEffect(() => {
+    if (storedTraces.length > 0) {
+      sessionStorage.setItem('hippo-traces', JSON.stringify(storedTraces));
+    }
+  }, [storedTraces]);
 
   const refreshTraces = useCallback(async () => {
     try {
@@ -81,9 +106,9 @@ export default function Home() {
         </div>
         <div className="flex items-center gap-4 text-[10px] text-[#404040]">
           <span className="text-[#333]">vercel ai sdk v4</span>
-          <a href="/benchmarks" className="text-[#505050] hover:text-[#00ff41] transition-colors">
+          <Link href="/benchmarks" className="text-[#505050] hover:text-[#00ff41] transition-colors">
             benchmarks
-          </a>
+          </Link>
           <a href="https://github.com/darthyoda69/hippo-reasoning" target="_blank" rel="noopener" className="text-[#505050] hover:text-[#00ff41] transition-colors">
             github
           </a>

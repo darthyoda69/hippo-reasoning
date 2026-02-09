@@ -1,6 +1,7 @@
 'use client';
 
 import { useChat } from 'ai/react';
+import type { Message } from 'ai';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import type { ReasoningTrace } from '@/lib/hippo';
 
@@ -10,6 +11,14 @@ interface ChatPanelProps {
   onStreamingChange: (streaming: boolean) => void;
 }
 
+function getSavedMessages(sessionId: string): Message[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = sessionStorage.getItem(`hippo-messages-${sessionId}`);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+
 export function ChatPanel({ sessionId, onTraceUpdate, onStreamingChange }: ChatPanelProps) {
   const [useMemory, setUseMemory] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -17,6 +26,7 @@ export function ChatPanel({ sessionId, onTraceUpdate, onStreamingChange }: ChatP
   const { messages, input, handleInputChange, handleSubmit, isLoading, data } = useChat({
     api: '/api/chat',
     body: { sessionId, useMemory },
+    initialMessages: getSavedMessages(sessionId),
     onResponse: async () => {
       onStreamingChange(true);
     },
@@ -24,6 +34,13 @@ export function ChatPanel({ sessionId, onTraceUpdate, onStreamingChange }: ChatP
       onStreamingChange(false);
     },
   });
+
+  // Persist messages to sessionStorage
+  useEffect(() => {
+    if (messages.length > 0) {
+      sessionStorage.setItem(`hippo-messages-${sessionId}`, JSON.stringify(messages));
+    }
+  }, [messages, sessionId]);
 
   // Extract trace data streamed from the server
   useEffect(() => {

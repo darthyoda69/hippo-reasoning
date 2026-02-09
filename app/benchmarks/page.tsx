@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 
 interface BenchmarkRow {
   task: string;
@@ -105,10 +106,10 @@ export default function BenchmarksPage() {
       <header className="border-b border-[#1a1a1a] px-8 py-4">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <a href="/" className="flex items-center gap-1 hover:opacity-80 transition-opacity">
+            <Link href="/" className="flex items-center gap-1 hover:opacity-80 transition-opacity">
               <span className="terminal-glow text-lg font-bold">hippo</span>
               <span className="terminal-dim">// benchmarks</span>
-            </a>
+            </Link>
           </div>
           <a
             href="https://github.com/darthyoda69/hippo-reasoning"
@@ -290,9 +291,9 @@ export default function BenchmarksPage() {
             hippo // agent reliability infrastructure
           </div>
           <div className="flex justify-center gap-6 text-xs">
-            <a href="/" className="terminal-dim hover:terminal-cyan transition-colors">
+            <Link href="/" className="terminal-dim hover:terminal-cyan transition-colors">
               home
-            </a>
+            </Link>
             <a
               href="https://github.com/darthyoda69/hippo-reasoning"
               className="terminal-dim hover:terminal-cyan transition-colors"
