@@ -10,6 +10,17 @@ Reasoning memory. Trace replay. Regression gates. The CI/CD layer for agent beha
 
 ---
 
+## Try it (60 seconds)
+
+1. Open **[hippo-reasoning.vercel.app](https://hippo-reasoning.vercel.app)**
+2. Type any query — the TRACE panel populates in real-time
+3. Click `$ hippo save --regression` on the trace
+4. Switch to **CI/CD** tab → click `$ hippo gate --run-all` → see **PASS/FAIL**
+
+That's the full loop: **trace → test → gate.**
+
+---
+
 ## The Problem
 
 AI agents reason through tasks, make tool calls, produce outputs — then forget everything. Two categories of tools exist to help, but neither solves it:
@@ -221,7 +232,7 @@ Measured on the demo app with 5 diverse research queries:
 | Eval score WITHOUT memory | 68% avg |
 | Quality improvement | **+21%** |
 
-All benchmarks reproducible from the repo. Run `npm run dev`, chat with the agent 3-5 times to build memory, then use the Eval tab.
+Benchmarks vary per session — chat 3-5 times to build memory, then use the Eval tab to see the delta.
 
 ## How It Compares
 

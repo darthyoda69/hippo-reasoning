@@ -117,12 +117,17 @@ export async function POST(req: Request) {
         },
 
         onStepFinish: async (event) => {
-          if (event.text) {
-            trace.addStep('assistant_message', event.text.slice(0, 500));
+          // Only capture intermediate step text (tool-using steps).
+          // The final text is captured in onFinish to avoid duplicates.
+          if (event.text && event.toolCalls && event.toolCalls.length > 0) {
+            trace.addStep('reasoning', event.text.slice(0, 500));
           }
         },
 
         onFinish: async (event) => {
+          // Always capture the final assistant response as a trace step.
+          // This ensures every query (even simple ones with no tools) produces
+          // a trace with at least: user_message + assistant_message.
           if (event.text) {
             trace.addStep('assistant_message', event.text.slice(0, 500));
           }
