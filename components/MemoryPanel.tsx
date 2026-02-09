@@ -14,6 +14,25 @@ interface MemoryPanelProps {
 export function MemoryPanel({ traces, onRefresh, sessionId, onDiffSelect, diffSelectedIds }: MemoryPanelProps) {
   const [expandedTrace, setExpandedTrace] = useState<string | null>(null);
   const [clearing, setClearing] = useState(false);
+  const [savingId, setSavingId] = useState<string | null>(null);
+  const [savedId, setSavedId] = useState<string | null>(null);
+
+  const handleSaveAsRegression = async (trace: ReasoningTrace) => {
+    setSavingId(trace.id);
+    try {
+      const res = await fetch('/api/regressions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'create', traceId: trace.id }),
+      });
+      if (res.ok) {
+        setSavedId(trace.id);
+        setTimeout(() => setSavedId(null), 3000);
+      }
+    } finally {
+      setSavingId(null);
+    }
+  };
 
   const handleClear = async () => {
     setClearing(true);
@@ -168,6 +187,23 @@ export function MemoryPanel({ traces, onRefresh, sessionId, onDiffSelect, diffSe
                       <span style={{ color: '#b0b0b0' }}>{trace.summary}</span>
                     </div>
                   )}
+                </div>
+                {/* Save as regression from Memory */}
+                <div className="px-3 py-2" style={{ borderTop: '1px solid #1a1a1a' }}>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleSaveAsRegression(trace); }}
+                    disabled={savingId === trace.id || savedId === trace.id}
+                    className="w-full text-left px-3 py-1.5 text-[10px] font-mono transition-all"
+                    style={{
+                      border: '1px solid #00ff41',
+                      background: '#0a0a0a',
+                      color: savedId === trace.id ? '#00ff41' : '#00ff41',
+                      cursor: savingId === trace.id || savedId === trace.id ? 'default' : 'pointer',
+                      opacity: savingId === trace.id || savedId === trace.id ? 0.6 : 1,
+                    }}
+                  >
+                    {savedId === trace.id ? '$ hippo save --regression [OK]' : savingId === trace.id ? '$ hippo save --regression...' : '$ hippo save --regression'}
+                  </button>
                 </div>
               </div>
             )}
