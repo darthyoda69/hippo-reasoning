@@ -2,9 +2,18 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 
+const KONAMI = ['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'];
 const CHARS = 'hippoHIPPO01アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン';
-const MSG_LINES = [
+const ESC_LINES = [
   '> YOU ESCAPED THE MATRIX',
+  '> built by leon benz',
+  '> the hippocampus never forgets',
+  '> reasoning memory is the next frontier',
+  '',
+  '  -- vercel ai accelerator 2026 --',
+];
+const KONAMI_LINES = [
+  '> HIPPO PROTOCOL ACTIVATED',
   '> built by leon benz',
   '> the hippocampus never forgets',
   '> reasoning memory is the next frontier',
@@ -17,9 +26,25 @@ export function MatrixRain() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animRef = useRef<number>(0);
   const startRef = useRef<number>(0);
+  const konamiRef = useRef<string[]>([]);
+  const msgRef = useRef(ESC_LINES);
 
   const handleKey = useCallback((e: KeyboardEvent) => {
-    if (e.key === 'Escape' && !active) {
+    if (active) return;
+
+    // Escape trigger
+    if (e.key === 'Escape') {
+      msgRef.current = ESC_LINES;
+      setActive(true);
+      return;
+    }
+
+    // Konami code tracker
+    konamiRef.current.push(e.key);
+    if (konamiRef.current.length > KONAMI.length) konamiRef.current.shift();
+    if (konamiRef.current.length === KONAMI.length && konamiRef.current.every((k, i) => k === KONAMI[i])) {
+      konamiRef.current = [];
+      msgRef.current = KONAMI_LINES;
       setActive(true);
     }
   }, [active]);
@@ -75,7 +100,7 @@ export function MatrixRain() {
         ctx.save();
         ctx.fillStyle = `rgba(0, 0, 0, ${0.7 * alpha})`;
         const boxW = 460;
-        const boxH = MSG_LINES.length * 28 + 40;
+        const boxH = msgRef.current.length * 28 + 40;
         const boxX = (canvas.width - boxW) / 2;
         const boxY = (canvas.height - boxH) / 2;
         ctx.fillRect(boxX, boxY, boxW, boxH);
@@ -86,12 +111,12 @@ export function MatrixRain() {
 
         ctx.font = `14px "JetBrains Mono", monospace`;
         ctx.textAlign = 'center';
-        MSG_LINES.forEach((line, idx) => {
+        msgRef.current.forEach((line, idx) => {
           if (idx === 0) {
             ctx.fillStyle = `rgba(10, 189, 198, ${alpha})`;
             ctx.shadowColor = '#0abdc6';
             ctx.shadowBlur = 12;
-          } else if (idx === MSG_LINES.length - 1) {
+          } else if (idx === msgRef.current.length - 1) {
             ctx.fillStyle = `rgba(64, 64, 64, ${alpha})`;
             ctx.shadowBlur = 0;
           } else {
