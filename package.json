@@ -17,13 +17,14 @@
     "@ai-sdk/anthropic": "^1.2.0",
     "@ai-sdk/openai": "^1.2.0",
     "ai": "^4.1.0",
+    "nanoid": "^5.0.9",
     "next": "^15.1.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "zod": "^3.24.0",
-    "nanoid": "^5.0.9"
+    "zod": "^3.24.0"
   },
   "optionalDependencies": {
+    "@ai-sdk/google": "^3.0.23",
     "@vercel/kv": "^2.0.0"
   },
   "devDependencies": {

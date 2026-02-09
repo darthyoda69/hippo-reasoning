@@ -5,6 +5,8 @@
  * Storage: in-memory by default, Vercel KV when KV_REST_API_URL is set.
  */
 
+import { findSimilarTraces } from './similarity';
+
 // ─── Types ───────────────────────────────────────────────────────────
 
 export interface TraceStep {
@@ -31,6 +33,7 @@ export interface ReasoningTrace {
   toolsUsed: string[];
   stepCount: number;
   summary?: string;
+  score?: number;
 }
 
 export interface EvalResult {
@@ -187,9 +190,18 @@ class MemoryStore implements IMemoryStore {
     const sessionTraces = await this.getBySession(sessionId);
     if (sessionTraces.length === 0) return '';
 
-    const relevant = sessionTraces
-      .sort((a, b) => b.startedAt - a.startedAt)
-      .slice(0, maxTraces);
+    // Use similarity search to find the most relevant traces.
+    // findSimilarTraces returns traces ranked by TF-IDF cosine similarity
+    // to the query (considering query text, tool names, and summary).
+    let relevant = findSimilarTraces(query, sessionTraces, maxTraces);
+
+    // Fallback to recency if similarity search returned nothing useful
+    // (e.g., query has no tokenizable content or zero overlap with all traces).
+    if (relevant.length === 0) {
+      relevant = sessionTraces
+        .sort((a, b) => b.startedAt - a.startedAt)
+        .slice(0, maxTraces);
+    }
 
     return relevant.map(trace => {
       const toolSteps = trace.steps

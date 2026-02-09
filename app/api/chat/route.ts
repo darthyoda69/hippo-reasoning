@@ -1,13 +1,15 @@
 import { createDataStreamResponse, streamText, tool } from 'ai';
-import { anthropic } from '@ai-sdk/anthropic';
 import { z } from 'zod';
 import { nanoid } from 'nanoid';
 import { TraceBuilder, hippoMemory } from '@/lib/hippo';
+import { getModel } from '@/lib/models';
 
 export const maxDuration = 60;
 
 export async function POST(req: Request) {
-  const { messages, sessionId = 'default', useMemory = true } = await req.json();
+  const { messages, sessionId = 'default', useMemory = true, model: requestedModel } = await req.json();
+
+  const { model: aiModel, providerId } = getModel(requestedModel);
 
   const traceId = nanoid(12);
   const userMessage = messages[messages.length - 1]?.content ?? '';
@@ -31,7 +33,7 @@ export async function POST(req: Request) {
   return createDataStreamResponse({
     execute: async (dataStream) => {
       const result = streamText({
-        model: anthropic('claude-sonnet-4-20250514'),
+        model: aiModel,
         system: systemPrompt,
         messages,
         maxSteps: 10,
@@ -133,7 +135,7 @@ export async function POST(req: Request) {
           await hippoMemory.store(completedTrace);
 
           // Stream the trace data directly to the client
-          dataStream.writeData(JSON.parse(JSON.stringify({ type: 'trace', trace: completedTrace })));
+          dataStream.writeData(JSON.parse(JSON.stringify({ type: 'trace', trace: completedTrace, model: providerId })));
         },
       });
 
@@ -143,6 +145,7 @@ export async function POST(req: Request) {
       'X-Hippo-Trace-Id': traceId,
       'X-Hippo-Session-Id': sessionId,
       'X-Hippo-Memory-Used': reasoningContext ? 'true' : 'false',
+      'X-Hippo-Model': providerId,
     },
   });
 }

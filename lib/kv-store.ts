@@ -8,6 +8,7 @@
 
 import { kv } from '@vercel/kv';
 import type { ReasoningTrace, RegressionTest, RegressionRun } from './hippo';
+import { findSimilarTraces } from './similarity';
 
 const TRACE_TTL = 60 * 60 * 24; // 24 hours
 const TRACE_PREFIX = 'trace:';
@@ -70,7 +71,16 @@ export class KVMemoryStore {
     const sessionTraces = await this.getBySession(sessionId);
     if (sessionTraces.length === 0) return '';
 
-    const relevant = sessionTraces.slice(0, maxTraces);
+    // Use similarity search to find the most relevant traces.
+    // findSimilarTraces returns traces ranked by TF-IDF cosine similarity
+    // to the query (considering query text, tool names, and summary).
+    let relevant = findSimilarTraces(query, sessionTraces, maxTraces);
+
+    // Fallback to recency if similarity search returned nothing useful
+    // (e.g., query has no tokenizable content or zero overlap with all traces).
+    if (relevant.length === 0) {
+      relevant = sessionTraces.slice(0, maxTraces);
+    }
 
     return relevant.map(trace => {
       const toolSteps = trace.steps
