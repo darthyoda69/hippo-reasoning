@@ -11,7 +11,7 @@ export async function POST(req: Request) {
     return Response.json({ error: 'Query is required' }, { status: 400 });
   }
 
-  const reasoningContext = hippoMemory.getReasoningContext(query, sessionId);
+  const reasoningContext = await hippoMemory.getReasoningContext(query, sessionId);
 
   // Run WITHOUT memory
   const withoutMemoryStart = Date.now();

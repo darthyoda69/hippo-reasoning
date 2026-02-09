@@ -15,7 +15,7 @@ export async function POST(req: Request) {
 
   // Get reasoning context from stored traces
   const reasoningContext = useMemory
-    ? hippoMemory.getReasoningContext(userMessage, sessionId)
+    ? await hippoMemory.getReasoningContext(userMessage, sessionId)
     : '';
 
   trace.addStep('user_message', userMessage);
@@ -127,7 +127,7 @@ export async function POST(req: Request) {
       const completedTrace = trace.complete(
         event.text ? event.text.slice(0, 200) : undefined
       );
-      hippoMemory.store(completedTrace);
+      await hippoMemory.store(completedTrace);
     },
   });
 
@@ -139,7 +139,7 @@ export async function POST(req: Request) {
   headers.set('X-Hippo-Trace-Id', traceId);
   headers.set('X-Hippo-Session-Id', sessionId);
   headers.set('X-Hippo-Memory-Used', reasoningContext ? 'true' : 'false');
-  headers.set('X-Hippo-Memory-Size', String(hippoMemory.size));
+  headers.set('X-Hippo-Memory-Size', String(await hippoMemory.getSize()));
 
   return new Response(response.body, {
     status: response.status,

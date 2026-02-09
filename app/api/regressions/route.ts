@@ -7,7 +7,7 @@ export const maxDuration = 60;
 
 // GET: List regression tests
 export async function GET() {
-  const tests = hippoRegressions.getAll();
+  const tests = await hippoRegressions.getAll();
   return Response.json({
     tests,
     count: tests.length,
@@ -22,18 +22,18 @@ export async function POST(req: NextRequest) {
 
   // Create regression from trace
   if (body.action === 'create' && body.traceId) {
-    const trace = hippoMemory.get(body.traceId);
+    const trace = await hippoMemory.get(body.traceId);
     if (!trace) {
       return Response.json({ error: 'Trace not found' }, { status: 404 });
     }
 
-    const test = hippoRegressions.createFromTrace(trace, body.name);
+    const test = await hippoRegressions.createFromTrace(trace, body.name);
     return Response.json({ test, message: 'Regression test created' });
   }
 
   // Run a regression test
   if (body.action === 'run' && body.testId) {
-    const test = hippoRegressions.get(body.testId);
+    const test = await hippoRegressions.get(body.testId);
     if (!test) {
       return Response.json({ error: 'Test not found' }, { status: 404 });
     }
@@ -70,18 +70,18 @@ export async function POST(req: NextRequest) {
       delta: score - test.minScore,
     };
 
-    hippoRegressions.addRun(body.testId, run);
+    await hippoRegressions.addRun(body.testId, run);
 
     return Response.json({
       run,
-      test: hippoRegressions.get(body.testId),
+      test: await hippoRegressions.get(body.testId),
       message: run.passed ? 'PASSED' : 'FAILED',
     });
   }
 
   // Run ALL regression tests (the deploy gate)
   if (body.action === 'run_all') {
-    const tests = hippoRegressions.getAll();
+    const tests = await hippoRegressions.getAll();
     if (tests.length === 0) {
       return Response.json({ error: 'No regression tests', gate: 'skip' }, { status: 400 });
     }
@@ -117,7 +117,7 @@ export async function POST(req: NextRequest) {
         delta: score - test.minScore,
       };
 
-      hippoRegressions.addRun(test.id, run);
+      await hippoRegressions.addRun(test.id, run);
       results.push({ testId: test.id, name: test.name, passed: run.passed, score });
     }
 
@@ -136,7 +136,7 @@ export async function POST(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   const { testId } = await req.json();
   if (testId) {
-    hippoRegressions.delete(testId);
+    await hippoRegressions.delete(testId);
     return Response.json({ ok: true });
   }
   return Response.json({ error: 'testId required' }, { status: 400 });

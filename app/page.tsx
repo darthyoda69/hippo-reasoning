@@ -6,9 +6,10 @@ import { TracePanel } from '@/components/TracePanel';
 import { MemoryPanel } from '@/components/MemoryPanel';
 import { EvalPanel } from '@/components/EvalPanel';
 import { RegressionPanel } from '@/components/RegressionPanel';
+import { DiffPanel } from '@/components/DiffPanel';
 import type { ReasoningTrace } from '@/lib/hippo';
 
-type RightTab = 'trace' | 'memory' | 'eval' | 'regression';
+type RightTab = 'trace' | 'memory' | 'eval' | 'regression' | 'diff';
 
 export default function Home() {
   const [rightTab, setRightTab] = useState<RightTab>('trace');
@@ -16,6 +17,7 @@ export default function Home() {
   const [storedTraces, setStoredTraces] = useState<ReasoningTrace[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [sessionId] = useState('demo-' + Date.now());
+  const [diffTraces, setDiffTraces] = useState<[ReasoningTrace | null, ReasoningTrace | null]>([null, null]);
 
   const refreshTraces = useCallback(async () => {
     try {
@@ -30,9 +32,24 @@ export default function Home() {
     if (trace) refreshTraces();
   }, [refreshTraces]);
 
+  const handleDiffSelect = useCallback((trace: ReasoningTrace) => {
+    setDiffTraces(prev => {
+      // Toggle off if already selected
+      if (prev[0] && prev[0].id === trace.id) return [null, prev[1]];
+      if (prev[1] && prev[1].id === trace.id) return [prev[0], null];
+      // Fill empty slot
+      if (!prev[0]) return [trace, prev[1]];
+      if (!prev[1]) return [trace, prev[0]];
+      // Both full — rotate
+      return [prev[1], trace];
+    });
+    setRightTab('diff');
+  }, []);
+
   const tabs: { id: RightTab; label: string; count?: number }[] = [
     { id: 'trace', label: 'TRACE' },
     { id: 'memory', label: 'MEMORY', count: storedTraces.length },
+    { id: 'diff', label: 'DIFF' },
     { id: 'eval', label: 'EVAL' },
     { id: 'regression', label: 'CI/CD' },
   ];
@@ -98,7 +115,16 @@ export default function Home() {
 
           <div className="flex-1 overflow-hidden">
             {rightTab === 'trace' && <TracePanel trace={currentTrace} isStreaming={isStreaming} />}
-            {rightTab === 'memory' && <MemoryPanel traces={storedTraces} onRefresh={refreshTraces} sessionId={sessionId} />}
+            {rightTab === 'memory' && (
+              <MemoryPanel
+                traces={storedTraces}
+                onRefresh={refreshTraces}
+                sessionId={sessionId}
+                onDiffSelect={handleDiffSelect}
+                diffSelectedIds={[diffTraces[0]?.id ?? null, diffTraces[1]?.id ?? null]}
+              />
+            )}
+            {rightTab === 'diff' && <DiffPanel traceA={diffTraces[0]} traceB={diffTraces[1]} />}
             {rightTab === 'eval' && <EvalPanel sessionId={sessionId} hasMemory={storedTraces.length > 0} />}
             {rightTab === 'regression' && <RegressionPanel sessionId={sessionId} />}
           </div>

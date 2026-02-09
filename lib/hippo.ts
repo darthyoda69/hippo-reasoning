@@ -1,6 +1,8 @@
 /**
  * Hippo Reasoning — Core Library
  * Reasoning memory (traces + replay + eval) for Vercel AI SDK agents
+ *
+ * Storage: in-memory by default, Vercel KV when KV_REST_API_URL is set.
  */
 
 // ─── Types ───────────────────────────────────────────────────────────
@@ -79,6 +81,28 @@ export interface RegressionRun {
   delta: number;
 }
 
+// ─── Store Interfaces ───────────────────────────────────────────────
+
+export interface IMemoryStore {
+  store(trace: ReasoningTrace): Promise<void>;
+  get(traceId: string): Promise<ReasoningTrace | undefined>;
+  getBySession(sessionId: string): Promise<ReasoningTrace[]>;
+  getAll(): Promise<ReasoningTrace[]>;
+  getReasoningContext(query: string, sessionId: string, maxTraces?: number): Promise<string>;
+  clear(): Promise<void>;
+  getSize(): Promise<number>;
+  getStats(): Promise<{ totalTraces: number; avgSteps: number; avgLatencyMs: number; totalToolCalls: number }>;
+}
+
+export interface IRegressionStore {
+  createFromTrace(trace: ReasoningTrace, name?: string): Promise<RegressionTest>;
+  get(id: string): Promise<RegressionTest | undefined>;
+  getAll(): Promise<RegressionTest[]>;
+  addRun(testId: string, run: RegressionRun): Promise<void>;
+  delete(id: string): Promise<boolean>;
+  getSize(): Promise<number>;
+}
+
 // ─── Trace Builder ───────────────────────────────────────────────────
 
 export class TraceBuilder {
@@ -133,37 +157,36 @@ export class TraceBuilder {
   }
 }
 
-// ─── Memory Store ────────────────────────────────────────────────────
+// ─── In-Memory Store (default) ──────────────────────────────────────
 
-class MemoryStore {
+class MemoryStore implements IMemoryStore {
   private traces: Map<string, ReasoningTrace> = new Map();
   private sessionTraces: Map<string, string[]> = new Map();
 
-  store(trace: ReasoningTrace): void {
+  async store(trace: ReasoningTrace): Promise<void> {
     this.traces.set(trace.id, trace);
     const sessionList = this.sessionTraces.get(trace.sessionId) ?? [];
     sessionList.push(trace.id);
     this.sessionTraces.set(trace.sessionId, sessionList);
   }
 
-  get(traceId: string): ReasoningTrace | undefined {
+  async get(traceId: string): Promise<ReasoningTrace | undefined> {
     return this.traces.get(traceId);
   }
 
-  getBySession(sessionId: string): ReasoningTrace[] {
+  async getBySession(sessionId: string): Promise<ReasoningTrace[]> {
     const ids = this.sessionTraces.get(sessionId) ?? [];
     return ids.map(id => this.traces.get(id)!).filter(Boolean);
   }
 
-  getAll(): ReasoningTrace[] {
+  async getAll(): Promise<ReasoningTrace[]> {
     return Array.from(this.traces.values()).sort((a, b) => b.startedAt - a.startedAt);
   }
 
-  getReasoningContext(query: string, sessionId: string, maxTraces = 3): string {
-    const sessionTraces = this.getBySession(sessionId);
+  async getReasoningContext(query: string, sessionId: string, maxTraces = 3): Promise<string> {
+    const sessionTraces = await this.getBySession(sessionId);
     if (sessionTraces.length === 0) return '';
 
-    // Simple relevance: most recent traces from same session
     const relevant = sessionTraces
       .sort((a, b) => b.startedAt - a.startedAt)
       .slice(0, maxTraces);
@@ -184,17 +207,17 @@ class MemoryStore {
     }).join('\n\n');
   }
 
-  clear(): void {
+  async clear(): Promise<void> {
     this.traces.clear();
     this.sessionTraces.clear();
   }
 
-  get size(): number {
+  async getSize(): Promise<number> {
     return this.traces.size;
   }
 
-  getStats(): { totalTraces: number; avgSteps: number; avgLatencyMs: number; totalToolCalls: number } {
-    const all = this.getAll();
+  async getStats(): Promise<{ totalTraces: number; avgSteps: number; avgLatencyMs: number; totalToolCalls: number }> {
+    const all = await this.getAll();
     if (all.length === 0) return { totalTraces: 0, avgSteps: 0, avgLatencyMs: 0, totalToolCalls: 0 };
 
     return {
@@ -206,12 +229,12 @@ class MemoryStore {
   }
 }
 
-// ─── Regression Store ───────────────────────────────────────────────
+// ─── In-Memory Regression Store ─────────────────────────────────────
 
-class RegressionStore {
+class RegressionStore implements IRegressionStore {
   private tests: Map<string, RegressionTest> = new Map();
 
-  createFromTrace(trace: ReasoningTrace, name?: string): RegressionTest {
+  async createFromTrace(trace: ReasoningTrace, name?: string): Promise<RegressionTest> {
     const test: RegressionTest = {
       id: `reg-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       name: name ?? `Regression: ${trace.query.slice(0, 50)}`,
@@ -219,7 +242,7 @@ class RegressionStore {
       query: trace.query,
       expectedToolCalls: trace.toolsUsed,
       expectedStepCount: trace.stepCount,
-      minScore: 70, // default passing threshold
+      minScore: 70,
       createdAt: Date.now(),
       runs: [],
     };
@@ -227,15 +250,15 @@ class RegressionStore {
     return test;
   }
 
-  get(id: string): RegressionTest | undefined {
+  async get(id: string): Promise<RegressionTest | undefined> {
     return this.tests.get(id);
   }
 
-  getAll(): RegressionTest[] {
+  async getAll(): Promise<RegressionTest[]> {
     return Array.from(this.tests.values()).sort((a, b) => b.createdAt - a.createdAt);
   }
 
-  addRun(testId: string, run: RegressionRun): void {
+  async addRun(testId: string, run: RegressionRun): Promise<void> {
     const test = this.tests.get(testId);
     if (test) {
       test.runs.push(run);
@@ -244,16 +267,34 @@ class RegressionStore {
     }
   }
 
-  delete(id: string): boolean {
+  async delete(id: string): Promise<boolean> {
     return this.tests.delete(id);
   }
 
-  get size(): number {
+  async getSize(): Promise<number> {
     return this.tests.size;
   }
 }
 
 // ─── Singleton Exports ──────────────────────────────────────────────
+// Use Vercel KV when configured, otherwise in-memory
 
-export const hippoMemory = new MemoryStore();
-export const hippoRegressions = new RegressionStore();
+function createStores(): { memory: IMemoryStore; regressions: IRegressionStore } {
+  if (process.env.KV_REST_API_URL) {
+    // Dynamic import to avoid errors when @vercel/kv is not installed
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { KVMemoryStore, KVRegressionStore } = require('./kv-store');
+      console.log('[hippo] Using Vercel KV persistent storage');
+      return { memory: new KVMemoryStore(), regressions: new KVRegressionStore() };
+    } catch {
+      console.log('[hippo] @vercel/kv not installed, falling back to in-memory');
+    }
+  }
+  console.log('[hippo] Using in-memory storage (data resets on restart)');
+  return { memory: new MemoryStore(), regressions: new RegressionStore() };
+}
+
+const stores = createStores();
+export const hippoMemory: IMemoryStore = stores.memory;
+export const hippoRegressions: IRegressionStore = stores.regressions;

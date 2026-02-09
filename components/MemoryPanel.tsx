@@ -7,9 +7,11 @@ interface MemoryPanelProps {
   traces: ReasoningTrace[];
   onRefresh: () => void;
   sessionId: string;
+  onDiffSelect?: (trace: ReasoningTrace) => void;
+  diffSelectedIds?: [string | null, string | null];
 }
 
-export function MemoryPanel({ traces, onRefresh, sessionId }: MemoryPanelProps) {
+export function MemoryPanel({ traces, onRefresh, sessionId, onDiffSelect, diffSelectedIds }: MemoryPanelProps) {
   const [expandedTrace, setExpandedTrace] = useState<string | null>(null);
   const [clearing, setClearing] = useState(false);
 
@@ -22,6 +24,9 @@ export function MemoryPanel({ traces, onRefresh, sessionId }: MemoryPanelProps) 
       setClearing(false);
     }
   };
+
+  const isDiffSelected = (traceId: string) =>
+    diffSelectedIds?.[0] === traceId || diffSelectedIds?.[1] === traceId;
 
   if (traces.length === 0) {
     return (
@@ -59,13 +64,13 @@ export function MemoryPanel({ traces, onRefresh, sessionId }: MemoryPanelProps) 
               disabled={clearing}
               className="transition-colors"
               style={{
-                color: clearing ? '#ff0040' : '#ff0040',
+                color: '#ff0040',
                 textDecoration: 'underline',
                 cursor: clearing ? 'not-allowed' : 'pointer',
                 opacity: clearing ? 0.5 : 1
               }}
             >
-              {clearing ? 'clear --all' : 'clear --all'}
+              clear --all
             </button>
           </div>
         </div>
@@ -76,46 +81,67 @@ export function MemoryPanel({ traces, onRefresh, sessionId }: MemoryPanelProps) 
         {traces.map((trace, idx) => (
           <div key={trace.id} style={{ borderColor: '#1a1a1a' }}>
             {/* Trace header - log entry style */}
-            <button
-              onClick={() => setExpandedTrace(expandedTrace === trace.id ? null : trace.id)}
-              className="w-full text-left px-3 py-2 font-mono text-xs transition-colors hover:glow-green"
-              style={{
-                color: '#00ff41',
-                backgroundColor: '#0a0a0a',
-                border: `1px solid #1a1a1a`,
-                fontFamily: 'JetBrains Mono, monospace'
-              }}
-            >
-              <span style={{ color: '#404040' }}>[trace-{String(idx + 1).padStart(3, '0')}]</span>
-              {' '}
-              <span style={{ color: '#b0b0b0' }}>'{trace.query.slice(0, 45)}{trace.query.length > 45 ? '...' : ''}'</span>
-              {' '}
-              <span style={{ color: '#404040' }}>|</span>
-              {' '}
-              <span style={{ color: '#b0b0b0' }}>{trace.stepCount} steps</span>
-              {' '}
-              <span style={{ color: '#404040' }}>|</span>
-              {' '}
-              <span style={{ color: '#b0b0b0' }}>{trace.totalLatencyMs}ms</span>
-              {trace.toolsUsed.length > 0 && (
-                <>
-                  {' '}
-                  <span style={{ color: '#404040' }}>|</span>
-                  {' '}
-                  <span style={{ color: '#0abdc6' }}>tools: {trace.toolsUsed.join(', ')}</span>
-                </>
+            <div className="flex items-center gap-0">
+              {/* Diff select button */}
+              {onDiffSelect && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDiffSelect(trace);
+                  }}
+                  className="px-2 py-2 text-[10px] font-mono font-bold transition-all border border-r-0"
+                  style={{
+                    backgroundColor: isDiffSelected(trace.id) ? '#0a0a0a' : '#000',
+                    borderColor: isDiffSelected(trace.id) ? '#0abdc6' : '#1a1a1a',
+                    color: isDiffSelected(trace.id) ? '#0abdc6' : '#404040',
+                  }}
+                  title="Select for diff comparison"
+                >
+                  {isDiffSelected(trace.id) ? '[x]' : '[ ]'}
+                </button>
               )}
-              {' '}
-              <span style={{ color: '#404040' }}>
-                {expandedTrace === trace.id ? '[-]' : '[+]'}
-              </span>
-            </button>
+
+              <button
+                onClick={() => setExpandedTrace(expandedTrace === trace.id ? null : trace.id)}
+                className="flex-1 text-left px-3 py-2 font-mono text-xs transition-colors hover:glow-green"
+                style={{
+                  color: '#00ff41',
+                  backgroundColor: '#0a0a0a',
+                  border: '1px solid #1a1a1a',
+                  fontFamily: 'JetBrains Mono, monospace'
+                }}
+              >
+                <span style={{ color: '#404040' }}>[trace-{String(idx + 1).padStart(3, '0')}]</span>
+                {' '}
+                <span style={{ color: '#b0b0b0' }}>'{trace.query.slice(0, 45)}{trace.query.length > 45 ? '...' : ''}'</span>
+                {' '}
+                <span style={{ color: '#404040' }}>|</span>
+                {' '}
+                <span style={{ color: '#b0b0b0' }}>{trace.stepCount} steps</span>
+                {' '}
+                <span style={{ color: '#404040' }}>|</span>
+                {' '}
+                <span style={{ color: '#b0b0b0' }}>{trace.totalLatencyMs}ms</span>
+                {trace.toolsUsed.length > 0 && (
+                  <>
+                    {' '}
+                    <span style={{ color: '#404040' }}>|</span>
+                    {' '}
+                    <span style={{ color: '#0abdc6' }}>tools: {trace.toolsUsed.join(', ')}</span>
+                  </>
+                )}
+                {' '}
+                <span style={{ color: '#404040' }}>
+                  {expandedTrace === trace.id ? '[-]' : '[+]'}
+                </span>
+              </button>
+            </div>
 
             {/* Expanded trace steps - terminal output */}
             {expandedTrace === trace.id && (
               <div className="font-mono text-xs" style={{ backgroundColor: '#000000', borderColor: '#1a1a1a', border: '1px solid #1a1a1a', borderTop: 'none' }}>
                 <div className="px-3 py-2 space-y-0 max-h-64 overflow-y-auto">
-                  {trace.steps.map((step, stepIdx) => (
+                  {trace.steps.map((step) => (
                     <div key={step.id} className="py-1" style={{ color: '#b0b0b0' }}>
                       <span style={{ color: '#404040' }}>{'>'}</span>
                       {' '}
@@ -149,6 +175,15 @@ export function MemoryPanel({ traces, onRefresh, sessionId }: MemoryPanelProps) 
         ))}
       </div>
 
+      {/* Diff hint */}
+      {onDiffSelect && traces.length >= 2 && (
+        <div className="px-4 py-2 border-t" style={{ borderColor: '#1a1a1a' }}>
+          <div className="text-[10px] font-mono" style={{ color: '#404040' }}>
+            tip: select 2 traces with [ ] to compare in DIFF tab
+          </div>
+        </div>
+      )}
+
       {/* Memory context preview - code block style */}
       {traces.length > 0 && (
         <div className="border-t px-4 py-3" style={{ borderColor: '#1a1a1a' }}>
@@ -160,7 +195,7 @@ export function MemoryPanel({ traces, onRefresh, sessionId }: MemoryPanelProps) 
             border: '1px solid #1a1a1a',
             color: '#b0b0b0'
           }}>
-            {traces.slice(0, 3).map((t, i) => (
+            {traces.slice(0, 3).map((t) => (
               <div key={t.id} className="mb-2">
                 <span style={{ color: '#00ff41' }}>{'$'}</span>
                 {' '}
