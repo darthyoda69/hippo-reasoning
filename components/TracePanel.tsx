@@ -24,12 +24,20 @@ const stepColors: Record<TraceStep['type'], string> = {
   reasoning: '#cccc00',
 };
 
+function isTraceAlreadySaved(traceId: string): boolean {
+  try {
+    const stored = JSON.parse(sessionStorage.getItem('hippo-regression-tests') ?? '[]');
+    return stored.some((t: { sourceTraceId: string }) => t.sourceTraceId === traceId);
+  } catch { return false; }
+}
+
 export function TracePanel({ trace, isStreaming }: TracePanelProps) {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const alreadySaved = trace ? isTraceAlreadySaved(trace.id) : false;
 
   const handleSaveAsRegression = async () => {
-    if (!trace) return;
+    if (!trace || alreadySaved) return;
     setSaving(true);
     try {
       const res = await fetch('/api/regressions', {
@@ -43,16 +51,14 @@ export function TracePanel({ trace, isStreaming }: TracePanelProps) {
       });
       if (res.ok) {
         const data = await res.json();
-        // Store regression test in sessionStorage (serverless instances don't share memory)
         if (data.test) {
           const stored = JSON.parse(sessionStorage.getItem('hippo-regression-tests') ?? '[]');
-          if (!stored.some((t: { id: string }) => t.id === data.test.id)) {
+          if (!stored.some((t: { sourceTraceId: string }) => t.sourceTraceId === trace.id)) {
             stored.push(data.test);
             sessionStorage.setItem('hippo-regression-tests', JSON.stringify(stored));
           }
         }
         setSaved(true);
-        setTimeout(() => setSaved(false), 3000);
       }
     } finally {
       setSaving(false);
@@ -156,17 +162,17 @@ export function TracePanel({ trace, isStreaming }: TracePanelProps) {
           {/* Save as Regression Test button */}
           <button
             onClick={handleSaveAsRegression}
-            disabled={saving || saved}
+            disabled={saving || saved || alreadySaved}
             className="w-full py-2 text-xs font-mono transition-all text-left px-3 mb-2"
             style={{
-              border: saved ? '1px solid #00ff41' : '1px solid #00ff41',
-              background: saved ? '#0a0a0a' : '#0a0a0a',
-              color: saved ? '#00ff41' : '#00ff41',
-              cursor: saving || saved ? 'default' : 'pointer',
-              opacity: saving || saved ? 0.6 : 1,
+              border: `1px solid ${alreadySaved ? '#404040' : '#00ff41'}`,
+              background: '#0a0a0a',
+              color: alreadySaved ? '#404040' : '#00ff41',
+              cursor: saving || saved || alreadySaved ? 'default' : 'pointer',
+              opacity: saving || saved || alreadySaved ? 0.6 : 1,
             }}
           >
-            {saved ? '$ hippo save --regression [OK]' : saving ? '$ hippo save --regression...' : '$ hippo save --regression'}
+            {alreadySaved ? '$ hippo save --regression [already saved]' : saved ? '$ hippo save --regression [OK]' : saving ? '$ hippo save --regression...' : '$ hippo save --regression'}
           </button>
 
           {saved && (

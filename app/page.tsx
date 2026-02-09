@@ -83,17 +83,20 @@ export default function Home() {
   }, []);
 
   const handleDiffSelect = useCallback((trace: ReasoningTrace) => {
+    let bothSelected = false;
     setDiffTraces(prev => {
       // Toggle off if already selected
       if (prev[0] && prev[0].id === trace.id) return [null, prev[1]];
       if (prev[1] && prev[1].id === trace.id) return [prev[0], null];
-      // Fill empty slot
+      // Fill first empty slot — don't navigate yet
       if (!prev[0]) return [trace, prev[1]];
-      if (!prev[1]) return [trace, prev[0]];
+      // Fill second slot — both now selected
+      if (!prev[1]) { bothSelected = true; return [prev[0], trace]; }
       // Both full — rotate
+      bothSelected = true;
       return [prev[1], trace];
     });
-    setRightTab('diff');
+    if (bothSelected) setRightTab('diff');
   }, []);
 
   const tabs: { id: RightTab; label: string; count?: number }[] = [

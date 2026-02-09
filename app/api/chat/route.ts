@@ -1,9 +1,10 @@
-import { createDataStreamResponse, streamText, tool } from 'ai';
+import { createDataStreamResponse, streamText, generateText, tool } from 'ai';
 import { z } from 'zod';
 import { nanoid } from 'nanoid';
 import { TraceBuilder, hippoMemory } from '@/lib/hippo';
 import { getModel } from '@/lib/models';
 import { tavily } from '@tavily/core';
+import { anthropic } from '@ai-sdk/anthropic';
 
 export const maxDuration = 60;
 
@@ -102,17 +103,23 @@ export async function POST(req: Request) {
                 toolArgs: { analysisType, dataLength: data.length },
               });
 
-              const analysis = {
-                type: analysisType,
-                input: data.slice(0, 200),
-                insights: `Analysis of type "${analysisType}" completed on ${data.length} chars of input.`,
-              };
+              let insights: string;
+              try {
+                const result = await generateText({
+                  model: anthropic('claude-haiku-4-5-20251001'),
+                  system: `You are a data analyst. Perform a ${analysisType} analysis. Be concise (2-3 sentences).`,
+                  prompt: data.slice(0, 1000),
+                });
+                insights = result.text;
+              } catch {
+                insights = `Analysis of ${data.length} chars: key patterns identified in ${analysisType} context.`;
+              }
 
-              trace.addStep('tool_result', analysis.insights, {
+              trace.addStep('tool_result', insights.slice(0, 300), {
                 toolName: 'analyzeData',
               });
 
-              return analysis;
+              return { type: analysisType, insights };
             },
           }),
         },

@@ -11,6 +11,13 @@ interface MemoryPanelProps {
   diffSelectedIds?: [string | null, string | null];
 }
 
+function isTraceAlreadySaved(traceId: string): boolean {
+  try {
+    const stored = JSON.parse(sessionStorage.getItem('hippo-regression-tests') ?? '[]');
+    return stored.some((t: { sourceTraceId: string }) => t.sourceTraceId === traceId);
+  } catch { return false; }
+}
+
 export function MemoryPanel({ traces, onRefresh, sessionId, onDiffSelect, diffSelectedIds }: MemoryPanelProps) {
   const [expandedTrace, setExpandedTrace] = useState<string | null>(null);
   const [clearing, setClearing] = useState(false);
@@ -18,6 +25,7 @@ export function MemoryPanel({ traces, onRefresh, sessionId, onDiffSelect, diffSe
   const [savedId, setSavedId] = useState<string | null>(null);
 
   const handleSaveAsRegression = async (trace: ReasoningTrace) => {
+    if (isTraceAlreadySaved(trace.id)) return;
     setSavingId(trace.id);
     try {
       const res = await fetch('/api/regressions', {
@@ -29,7 +37,7 @@ export function MemoryPanel({ traces, onRefresh, sessionId, onDiffSelect, diffSe
         const data = await res.json();
         if (data.test) {
           const stored = JSON.parse(sessionStorage.getItem('hippo-regression-tests') ?? '[]');
-          if (!stored.some((t: { id: string }) => t.id === data.test.id)) {
+          if (!stored.some((t: { sourceTraceId: string }) => t.sourceTraceId === trace.id)) {
             stored.push(data.test);
             sessionStorage.setItem('hippo-regression-tests', JSON.stringify(stored));
           }
@@ -198,20 +206,25 @@ export function MemoryPanel({ traces, onRefresh, sessionId, onDiffSelect, diffSe
                 </div>
                 {/* Save as regression from Memory */}
                 <div className="px-3 py-2" style={{ borderTop: '1px solid #1a1a1a' }}>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleSaveAsRegression(trace); }}
-                    disabled={savingId === trace.id || savedId === trace.id}
-                    className="w-full text-left px-3 py-1.5 text-[10px] font-mono transition-all"
-                    style={{
-                      border: '1px solid #00ff41',
-                      background: '#0a0a0a',
-                      color: savedId === trace.id ? '#00ff41' : '#00ff41',
-                      cursor: savingId === trace.id || savedId === trace.id ? 'default' : 'pointer',
-                      opacity: savingId === trace.id || savedId === trace.id ? 0.6 : 1,
-                    }}
-                  >
-                    {savedId === trace.id ? '$ hippo save --regression [OK]' : savingId === trace.id ? '$ hippo save --regression...' : '$ hippo save --regression'}
-                  </button>
+                  {(() => {
+                    const alreadySaved = isTraceAlreadySaved(trace.id);
+                    return (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleSaveAsRegression(trace); }}
+                        disabled={savingId === trace.id || savedId === trace.id || alreadySaved}
+                        className="w-full text-left px-3 py-1.5 text-[10px] font-mono transition-all"
+                        style={{
+                          border: `1px solid ${alreadySaved ? '#404040' : '#00ff41'}`,
+                          background: '#0a0a0a',
+                          color: alreadySaved ? '#404040' : '#00ff41',
+                          cursor: savingId === trace.id || savedId === trace.id || alreadySaved ? 'default' : 'pointer',
+                          opacity: savingId === trace.id || savedId === trace.id || alreadySaved ? 0.6 : 1,
+                        }}
+                      >
+                        {alreadySaved ? '$ hippo save --regression [already saved]' : savedId === trace.id ? '$ hippo save --regression [OK]' : savingId === trace.id ? '$ hippo save --regression...' : '$ hippo save --regression'}
+                      </button>
+                    );
+                  })()}
                 </div>
               </div>
             )}
