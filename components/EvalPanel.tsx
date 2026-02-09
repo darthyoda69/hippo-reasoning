@@ -6,6 +6,7 @@ import type { EvalResult, EvalBreakdown } from '@/lib/hippo';
 interface EvalPanelProps {
   sessionId: string;
   hasMemory: boolean;
+  memoryQueries?: string[];
 }
 
 interface FullEvalResult extends EvalResult {
@@ -20,16 +21,22 @@ const evalQueries = [
   'What role does the hippocampus play in memory formation and how does this apply to AI?',
 ];
 
-export function EvalPanel({ sessionId, hasMemory }: EvalPanelProps) {
+export function EvalPanel({ sessionId, hasMemory, memoryQueries = [] }: EvalPanelProps) {
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<FullEvalResult | null>(null);
   const [selectedQuery, setSelectedQuery] = useState(0);
   const [customQuery, setCustomQuery] = useState('');
   const [useCustom, setUseCustom] = useState(false);
+  const [selectedMemoryQuery, setSelectedMemoryQuery] = useState<number | null>(memoryQueries.length > 0 ? 0 : null);
   const [error, setError] = useState<string | null>(null);
+
+  // Deduplicate memory queries
+  const uniqueMemoryQueries = [...new Set(memoryQueries)];
 
   const activeQuery = useCustom && customQuery.trim()
     ? customQuery.trim()
+    : selectedMemoryQuery !== null
+    ? uniqueMemoryQueries[selectedMemoryQuery]
     : evalQueries[selectedQuery];
 
   const runEval = async () => {
@@ -72,23 +79,53 @@ export function EvalPanel({ sessionId, hasMemory }: EvalPanelProps) {
 
         {/* Query Selection */}
         <div className="mb-4 space-y-1">
-          <div className="text-[#404040] text-xs mb-2">select query:</div>
-          {evalQueries.map((q, i) => (
-            <button
-              key={i}
-              onClick={() => { setSelectedQuery(i); setUseCustom(false); }}
-              className={`w-full text-left px-2 py-1 text-xs transition-all border border-[#1a1a1a] ${
-                !useCustom && selectedQuery === i
-                  ? 'text-[#0abdc6] border-[#0abdc6]'
-                  : 'text-[#404040] hover:text-[#b0b0b0]'
-              }`}
-              style={{
-                background: !useCustom && selectedQuery === i ? 'rgba(10, 189, 198, 0.05)' : 'transparent',
-              }}
-            >
-              <span style={{ color: !useCustom && selectedQuery === i ? '#0abdc6' : '#404040' }}>{i + 1}{'>'}</span> {q}
-            </button>
-          ))}
+          {/* Memory queries — from actual stored traces */}
+          {uniqueMemoryQueries.length > 0 && (
+            <>
+              <div className="text-[#00ff41] text-[10px] mb-1 uppercase tracking-wider">from memory:</div>
+              {uniqueMemoryQueries.map((q, i) => {
+                const isSelected = !useCustom && selectedMemoryQuery === i;
+                return (
+                  <button
+                    key={`mem-${i}`}
+                    onClick={() => { setSelectedMemoryQuery(i); setUseCustom(false); }}
+                    className={`w-full text-left px-2 py-1 text-xs transition-all border ${
+                      isSelected
+                        ? 'text-[#00ff41] border-[#00ff41]'
+                        : 'border-[#1a1a1a] text-[#b0b0b0] hover:text-[#00ff41]'
+                    }`}
+                    style={{ background: isSelected ? 'rgba(0, 255, 65, 0.05)' : 'transparent' }}
+                  >
+                    <span style={{ color: isSelected ? '#00ff41' : '#404040' }}>{'>'}</span>{' '}
+                    {q.length > 70 ? q.slice(0, 70) + '...' : q}
+                  </button>
+                );
+              })}
+              <div className="text-[#404040] text-[10px] mt-3 mb-1 uppercase tracking-wider">presets:</div>
+            </>
+          )}
+
+          {uniqueMemoryQueries.length === 0 && (
+            <div className="text-[#404040] text-xs mb-2">select query:</div>
+          )}
+
+          {evalQueries.map((q, i) => {
+            const isSelected = !useCustom && selectedMemoryQuery === null && selectedQuery === i;
+            return (
+              <button
+                key={i}
+                onClick={() => { setSelectedQuery(i); setSelectedMemoryQuery(null); setUseCustom(false); }}
+                className={`w-full text-left px-2 py-1 text-xs transition-all border border-[#1a1a1a] ${
+                  isSelected
+                    ? 'text-[#0abdc6] border-[#0abdc6]'
+                    : 'text-[#404040] hover:text-[#b0b0b0]'
+                }`}
+                style={{ background: isSelected ? 'rgba(10, 189, 198, 0.05)' : 'transparent' }}
+              >
+                <span style={{ color: isSelected ? '#0abdc6' : '#404040' }}>{i + 1}{'>'}</span> {q}
+              </button>
+            );
+          })}
 
           {/* Custom query input */}
           <div
@@ -101,7 +138,7 @@ export function EvalPanel({ sessionId, hasMemory }: EvalPanelProps) {
               <span className="text-xs" style={{ color: useCustom ? '#0abdc6' : '#404040' }}>$</span>
               <input
                 value={customQuery}
-                onChange={(e) => { setCustomQuery(e.target.value); setUseCustom(true); }}
+                onChange={(e) => { setCustomQuery(e.target.value); setSelectedMemoryQuery(null); setUseCustom(true); }}
                 onFocus={() => { if (customQuery.trim()) setUseCustom(true); }}
                 placeholder="custom eval query..."
                 className="flex-1 text-xs outline-none bg-transparent"

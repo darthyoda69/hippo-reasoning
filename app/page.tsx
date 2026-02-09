@@ -184,7 +184,7 @@ export default function Home() {
               />
             )}
             {rightTab === 'diff' && <DiffPanel traceA={diffTraces[0]} traceB={diffTraces[1]} />}
-            {rightTab === 'eval' && <EvalPanel sessionId={sessionId} hasMemory={storedTraces.length > 0} />}
+            {rightTab === 'eval' && <EvalPanel sessionId={sessionId} hasMemory={storedTraces.length > 0} memoryQueries={storedTraces.map(t => t.query)} />}
             {rightTab === 'regression' && <RegressionPanel sessionId={sessionId} />}
           </div>
 
