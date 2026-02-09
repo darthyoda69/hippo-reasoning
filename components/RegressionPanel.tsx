@@ -123,9 +123,9 @@ export function RegressionPanel({ sessionId }: RegressionPanelProps) {
       <div className="h-full flex flex-col items-center justify-center text-center p-8 bg-[#000] font-mono">
         <style>{`
           @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
-          .matrix-terminal { font-family: 'JetBrains Mono', monospace; }
+          .hippo-terminal { font-family: 'JetBrains Mono', monospace; }
         `}</style>
-        <div className="matrix-terminal max-w-sm">
+        <div className="hippo-terminal max-w-sm">
           <div className="text-[#00ff41] mb-6 text-lg leading-tight">
             $ hippo gate
           </div>
@@ -153,12 +153,12 @@ export function RegressionPanel({ sessionId }: RegressionPanelProps) {
     <div className="h-full overflow-y-auto bg-[#000]">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
-        .matrix-terminal { font-family: 'JetBrains Mono', monospace; }
+        .hippo-terminal { font-family: 'JetBrains Mono', monospace; }
         .gate-pass-glow { color: #00ff41; text-shadow: 0 0 8px #00ff41, 0 0 16px #00ff41; }
         .gate-fail-glow { color: #ff0040; text-shadow: 0 0 8px #ff0040, 0 0 16px #ff0040; }
       `}</style>
 
-      <div className="matrix-terminal">
+      <div className="hippo-terminal">
         {/* Header with stats */}
         <div className="sticky top-0 bg-[#000] border-b border-[#1a1a1a] px-4 py-3">
           <div className="flex items-center justify-between mb-3">

@@ -98,7 +98,7 @@ export function ChatPanel({ sessionId, onTraceUpdate, onStreamingChange }: ChatP
             <div className="mb-6" style={{ color: '#404040' }}>
               <div style={{ color: '#00ff41' }} className="glow-green text-sm leading-6">
                 $ hippo.agent --ready<br/>
-                {'>'} initializing matrix terminal...<br/>
+                {'>'} initializing hippocampus terminal...<br/>
                 {'>'} memory engine: {useMemory ? 'online' : 'offline'}<br/>
                 {'>'} waiting for input...<br/>
               </div>

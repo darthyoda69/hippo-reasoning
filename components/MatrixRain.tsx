@@ -5,7 +5,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 const KONAMI = ['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'];
 const CHARS = 'hippoHIPPO01アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン';
 const ESC_LINES = [
-  '> YOU ESCAPED THE MATRIX',
+  '> HIPPOCAMPUS UNLOCKED',
   '> built by leon benz',
   '> the hippocampus never forgets',
   '> reasoning memory is the next frontier',
@@ -21,7 +21,7 @@ const KONAMI_LINES = [
   '  -- vercel ai accelerator 2026 --',
 ];
 
-export function MatrixRain() {
+export function HippoRain() {
   const [active, setActive] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animRef = useRef<number>(0);
