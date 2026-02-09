@@ -23,10 +23,9 @@ export function ChatPanel({ sessionId, onTraceUpdate, onStreamingChange }: ChatP
   const [useMemory, setUseMemory] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const { messages, input, handleInputChange, handleSubmit, isLoading, data } = useChat({
+  const { messages, setMessages, input, handleInputChange, handleSubmit, isLoading, data } = useChat({
     api: '/api/chat',
     body: { sessionId, useMemory },
-    initialMessages: getSavedMessages(sessionId),
     onResponse: async () => {
       onStreamingChange(true);
     },
@@ -34,6 +33,15 @@ export function ChatPanel({ sessionId, onTraceUpdate, onStreamingChange }: ChatP
       onStreamingChange(false);
     },
   });
+
+  // Restore messages from sessionStorage after hydration
+  const restoredRef = useRef(false);
+  useEffect(() => {
+    if (restoredRef.current) return;
+    restoredRef.current = true;
+    const saved = getSavedMessages(sessionId);
+    if (saved.length > 0) setMessages(saved);
+  }, [sessionId, setMessages]);
 
   // Persist messages to sessionStorage
   useEffect(() => {

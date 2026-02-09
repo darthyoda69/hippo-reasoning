@@ -32,17 +32,27 @@ function getStoredTraces(): ReasoningTrace[] {
 export default function Home() {
   const [rightTab, setRightTab] = useState<RightTab>('trace');
   const [currentTrace, setCurrentTrace] = useState<ReasoningTrace | null>(null);
-  const [storedTraces, setStoredTraces] = useState<ReasoningTrace[]>(() => getStoredTraces());
+  const [storedTraces, setStoredTraces] = useState<ReasoningTrace[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
-  const [sessionId] = useState(() => getSessionId());
+  const [sessionId, setSessionId] = useState('demo-0');
+  const [hydrated, setHydrated] = useState(false);
   const [diffTraces, setDiffTraces] = useState<[ReasoningTrace | null, ReasoningTrace | null]>([null, null]);
+
+  // Restore state from sessionStorage after hydration
+  useEffect(() => {
+    const id = getSessionId();
+    setSessionId(id);
+    const traces = getStoredTraces();
+    if (traces.length > 0) setStoredTraces(traces);
+    setHydrated(true);
+  }, []);
 
   // Persist traces to sessionStorage whenever they change
   useEffect(() => {
-    if (storedTraces.length > 0) {
+    if (hydrated && storedTraces.length > 0) {
       sessionStorage.setItem('hippo-traces', JSON.stringify(storedTraces));
     }
-  }, [storedTraces]);
+  }, [storedTraces, hydrated]);
 
   const refreshTraces = useCallback(async () => {
     try {
