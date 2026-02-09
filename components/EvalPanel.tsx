@@ -153,7 +153,7 @@ export function EvalPanel({ sessionId, hasMemory }: EvalPanelProps) {
             </div>
             {!result.memoryAvailable && (
               <div className="text-[10px] text-[#404040] text-center mt-2">
-                -- no traces available --
+                -- no memory context injected, both runs baseline --
               </div>
             )}
           </div>

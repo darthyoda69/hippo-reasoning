@@ -45,6 +45,10 @@ export default function Home() {
     setSessionId(id);
     const traces = getStoredTraces();
     if (traces.length > 0) setStoredTraces(traces);
+    try {
+      const raw = sessionStorage.getItem('hippo-current-trace');
+      if (raw) setCurrentTrace(JSON.parse(raw));
+    } catch { /* ignore */ }
     setHydrated(true);
   }, []);
 
@@ -68,6 +72,7 @@ export default function Home() {
   const handleTraceUpdate = useCallback((trace: ReasoningTrace | null) => {
     setCurrentTrace(trace);
     if (trace) {
+      sessionStorage.setItem('hippo-current-trace', JSON.stringify(trace));
       // Add to client-side stored traces (serverless functions don't share memory)
       setStoredTraces(prev => {
         if (prev.some(t => t.id === trace.id)) return prev;
