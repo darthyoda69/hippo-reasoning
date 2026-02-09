@@ -23,14 +23,22 @@ export default function Home() {
     try {
       const res = await fetch(`/api/traces?sessionId=${sessionId}`);
       const data = await res.json();
-      setStoredTraces(data.traces ?? []);
+      if (data.traces?.length > 0) {
+        setStoredTraces(data.traces);
+      }
     } catch { /* ignore */ }
   }, [sessionId]);
 
   const handleTraceUpdate = useCallback((trace: ReasoningTrace | null) => {
     setCurrentTrace(trace);
-    if (trace) refreshTraces();
-  }, [refreshTraces]);
+    if (trace) {
+      // Add to client-side stored traces (serverless functions don't share memory)
+      setStoredTraces(prev => {
+        if (prev.some(t => t.id === trace.id)) return prev;
+        return [trace, ...prev];
+      });
+    }
+  }, []);
 
   const handleDiffSelect = useCallback((trace: ReasoningTrace) => {
     setDiffTraces(prev => {
