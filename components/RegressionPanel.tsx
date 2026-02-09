@@ -11,13 +11,25 @@ function getStoredTests(): RegressionTest[] {
   if (typeof window === 'undefined') return [];
   try {
     const raw: RegressionTest[] = JSON.parse(sessionStorage.getItem('hippo-regression-tests') ?? '[]');
-    // Deduplicate by sourceTraceId (cleans up pre-existing duplicates)
-    const seen = new Set<string>();
-    const deduped = raw.filter(t => {
-      if (seen.has(t.sourceTraceId)) return false;
-      seen.add(t.sourceTraceId);
-      return true;
-    });
+    // Deduplicate by query text — keep the entry with the most runs (richest history)
+    const byQuery = new Map<string, RegressionTest>();
+    for (const t of raw) {
+      const existing = byQuery.get(t.query);
+      if (!existing || t.runs.length > existing.runs.length) {
+        // Merge runs from both if replacing
+        if (existing) {
+          const allRuns = [...existing.runs, ...t.runs];
+          const seenRuns = new Set<string>();
+          t.runs = allRuns.filter(r => {
+            if (seenRuns.has(r.id)) return false;
+            seenRuns.add(r.id);
+            return true;
+          });
+        }
+        byQuery.set(t.query, t);
+      }
+    }
+    const deduped = Array.from(byQuery.values());
     if (deduped.length !== raw.length) {
       sessionStorage.setItem('hippo-regression-tests', JSON.stringify(deduped));
     }
