@@ -234,8 +234,8 @@ export default function BenchmarksPage() {
               <span className="terminal-green">SETUP</span>
               <br />
               {' '}Each task executed via Claude Sonnet + Vercel AI SDK (streamText,<br />
-              {' '}generateText). Agent has access to: searchKnowledge, calculate,<br />
-              {' '}analyzeData.
+              {' '}generateText). Agent has access to: searchWeb (Tavily), calculate,<br />
+              {' '}analyzeData (Claude Haiku).
             </div>
 
             <div>

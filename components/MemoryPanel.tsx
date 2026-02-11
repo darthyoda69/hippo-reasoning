@@ -23,6 +23,7 @@ export function MemoryPanel({ traces, onRefresh, sessionId, onDiffSelect, diffSe
   const [clearing, setClearing] = useState(false);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [savedId, setSavedId] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   const handleSaveAsRegression = async (trace: ReasoningTrace) => {
     if (isTraceAlreadySaved(trace.id)) return;
@@ -60,6 +61,24 @@ export function MemoryPanel({ traces, onRefresh, sessionId, onDiffSelect, diffSe
     }
   };
 
+  const handleExport = async (format: string) => {
+    setExporting(true);
+    try {
+      const res = await fetch(`/api/export?sessionId=${sessionId}&format=${format}`);
+      if (!res.ok) return;
+      const blob = await res.blob();
+      const ext = format === 'csv' ? 'csv' : format === 'json' ? 'json' : 'jsonl';
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `hippo-traces.${ext}`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const isDiffSelected = (traceId: string) =>
     diffSelectedIds?.[0] === traceId || diffSelectedIds?.[1] === traceId;
 
@@ -87,6 +106,14 @@ export function MemoryPanel({ traces, onRefresh, sessionId, onDiffSelect, diffSe
             traces: {traces.length} | steps: {totalSteps} | avg: {avgLatency}ms
           </div>
           <div className="flex items-center gap-4">
+            <button
+              onClick={() => handleExport('openai_jsonl')}
+              disabled={exporting}
+              className="transition-colors"
+              style={{ color: '#00ff41', textDecoration: 'underline', cursor: exporting ? 'not-allowed' : 'pointer', opacity: exporting ? 0.5 : 1 }}
+            >
+              export
+            </button>
             <button
               onClick={onRefresh}
               className="transition-colors hover:glow-green"
