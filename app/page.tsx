@@ -9,6 +9,7 @@ import { EvalPanel } from '@/components/EvalPanel';
 import { RegressionPanel } from '@/components/RegressionPanel';
 import { DiffPanel } from '@/components/DiffPanel';
 import { HippoRain } from '@/components/MatrixRain';
+import { CursorSeahorse } from '@/components/CursorSeahorse';
 import type { ReasoningTrace } from '@/lib/hippo';
 
 type RightTab = 'trace' | 'memory' | 'eval' | 'regression' | 'diff';
@@ -115,6 +116,7 @@ export default function Home() {
   return (
     <div className="h-screen flex flex-col bg-black">
       <HippoRain />
+      <CursorSeahorse />
       {/* Header — terminal style */}
       <header className="flex items-center justify-between px-4 py-2 border-b border-[#1a1a1a]">
         <div className="flex items-center gap-3">
