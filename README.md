@@ -1,8 +1,8 @@
-# 🦛 Hippo Reasoning
+# 🦛 Hippo
 
-**Open-source agent reliability infrastructure for Vercel AI SDK.**
+**Agent reliability infrastructure for Vercel AI SDK.**
 
-Reasoning memory. Trace replay. Regression gates. The CI/CD layer for agent behavior.
+Trace. Regress. Gate. The CI/CD layer for AI agent behavior.
 
 [![npm](https://img.shields.io/npm/v/hippo-reasoning)](https://www.npmjs.com/package/hippo-reasoning)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -13,9 +13,10 @@ Reasoning memory. Trace replay. Regression gates. The CI/CD layer for agent beha
 ## Try it (60 seconds)
 
 1. Open **[hippo-reasoning.vercel.app](https://hippo-reasoning.vercel.app)**
-2. Type any query — the TRACE panel populates in real-time
-3. Click `$ hippo save --regression` on the trace
-4. Switch to **CI/CD** tab → click `$ hippo gate --run-all` → see **PASS/FAIL**
+2. Send any query to the research agent
+3. Watch the **Trace** panel populate in real-time
+4. Click **Save as regression** on the trace
+5. Switch to **CI/CD** tab → click `$ hippo gate --run-all` → see **PASS/FAIL**
 
 That's the full loop: **trace → test → gate.**
 
@@ -23,15 +24,13 @@ That's the full loop: **trace → test → gate.**
 
 ## The Problem
 
-AI agents reason through tasks, make tool calls, produce outputs — then forget everything. Two categories of tools exist to help, but neither solves it:
+AI agents reason through tasks, make tool calls, produce outputs — then forget everything.
 
-**Memory tools** (Mem0, Zep) store *facts* — what the user said, what preferences exist. But they don't capture *how the agent reasoned* or *which tools it used and why*.
-
-**Observability tools** (LangSmith, Langfuse) *trace* the reasoning — every step, every tool call. But they're read-only developer dashboards. The agent itself never sees its own past traces.
+**Memory tools** (Mem0, Zep) store *facts* but don't capture *how the agent reasoned*. **Observability tools** (LangSmith, Langfuse) *trace* reasoning but are read-only dashboards the agent never sees.
 
 **The gap:** No tool captures reasoning traces AND feeds them back as memory the agent can learn from.
 
-Hippo fills that gap. It captures the full reasoning trace — every step, tool call, decision, and timing — stores it as structured memory, and injects relevant past reasoning into future tasks. Replay, learning, and evaluation in one primitive.
+Hippo fills that gap. It captures the full reasoning trace — every step, tool call, decision, and timing — stores it as structured memory, and injects relevant past reasoning into future tasks.
 
 ## Quick Start
 
@@ -46,10 +45,8 @@ import { HippoTracer } from 'hippo-reasoning';
 import { streamText } from 'ai';
 import { anthropic } from '@ai-sdk/anthropic';
 
-// Initialize tracer
 const hippo = new HippoTracer({ sessionId: 'my-session' });
 
-// Wrap your streamText call — traces captured automatically
 const result = hippo.trace(streamText, {
   model: anthropic('claude-sonnet-4-20250514'),
   messages,
@@ -59,37 +56,15 @@ const result = hippo.trace(streamText, {
 
 ## What It Does
 
-### 1. Trace Capture
-Every agent interaction is captured as a structured reasoning trace:
-- User messages, assistant responses, tool calls, tool results
-- Timestamps and latency per step
-- Tools used and their arguments
-- Automatic summarization
+**Trace Capture** — Every agent interaction is captured as a structured reasoning trace: messages, tool calls, results, timestamps, and latency per step.
 
-### 2. Reasoning Memory
-Stored traces are retrieved and injected into the agent's context for future tasks:
-- Similar past reasoning improves future responses
-- Agents learn tool usage patterns across sessions
-- Context from previous decisions informs new ones
+**Reasoning Memory** — Stored traces are retrieved and injected into the agent's context. Similar past reasoning improves future responses across sessions.
 
-### 3. Eval Framework
-Built-in evaluation comparing agent performance WITH vs WITHOUT reasoning memory:
-- 4-dimension scoring: relevance, completeness, reasoning quality, tool usage
-- Score delta visualization
-- Reproducible benchmark runs
+**Eval Framework** — Built-in 4-dimension scoring (relevance, completeness, reasoning quality, tool usage) comparing agent performance with vs without memory.
 
-### 4. Replay
-Re-execute any stored trace to reproduce or debug agent behavior:
-- Step-by-step trace playback
-- Latency profiling per step
-- Tool call inspection
+**Replay** — Re-execute any stored trace for step-by-step debugging with latency profiling and tool call inspection.
 
-### 5. Regression Gates (CI/CD)
-One click turns any trace into a regression test that gates deployments:
-- Save any trace as a regression test
-- Run all tests as a deploy gate (PASS/FAIL)
-- Track score history across runs
-- Block deployments when agent behavior regresses
+**Regression Gates (CI/CD)** — One click turns any trace into a regression test. Run all tests as a deploy gate with PASS/FAIL. Block deployments when agent behavior regresses.
 
 ## Demo
 
@@ -99,9 +74,9 @@ The demo app is a split-panel interface with 5 tabs:
 
 | Panel | What it shows |
 |-------|--------------|
-| **Chat** | Research agent with tool calls (search, calculate, analyze). Supports Anthropic, OpenAI, and Google models. |
-| **Trace** | Real-time reasoning visualization — every step as it happens. Save any trace as a regression test. |
-| **Memory** | Stored traces with expandable detail view and similarity-ranked retrieval |
+| **Chat** | Research agent with tool calls. Supports Anthropic, OpenAI, and Google models. |
+| **Trace** | Real-time reasoning visualization. Save any trace as a regression test. |
+| **Memory** | Stored traces with similarity-ranked retrieval |
 | **Diff** | Visual side-by-side trace comparison for debugging regressions |
 | **Eval** | Side-by-side comparison: with memory vs without |
 | **CI/CD** | Regression suite — run deploy gate, track pass/fail history |
@@ -132,130 +107,63 @@ npm run dev
 ```
 hippo-reasoning/
 ├── lib/
-│   ├── hippo.ts               # Core: TraceBuilder + MemoryStore + RegressionStore + types
-│   ├── models.ts              # Cross-model provider abstraction (Anthropic/OpenAI/Google)
-│   ├── similarity.ts          # TF-IDF cosine similarity for trace retrieval (zero deps)
-│   ├── memory-policy.ts       # Outcome-driven trace scoring & retention policies
-│   ├── export.ts              # Trace dataset export (OpenAI/Anthropic JSONL, CSV)
-│   ├── composable-memory.ts   # Mem0/Zep adapter interface for hybrid memory
+│   ├── hippo.ts               # Core: TraceBuilder + MemoryStore + RegressionStore
+│   ├── models.ts              # Cross-model provider abstraction
+│   ├── similarity.ts          # TF-IDF cosine similarity (zero deps)
+│   ├── memory-policy.ts       # Outcome-driven trace scoring & retention
+│   ├── export.ts              # Dataset export (OpenAI/Anthropic JSONL, CSV)
+│   ├── composable-memory.ts   # Mem0/Zep adapter interface
 │   ├── plugins.ts             # Plugin system for custom trace processors
 │   └── kv-store.ts            # Vercel KV persistent storage adapter
 ├── app/
 │   ├── page.tsx               # Split-panel demo (5 tabs)
-│   ├── layout.tsx             # Root layout + OG metadata
-│   ├── globals.css            # Animations + theme
-│   ├── benchmarks/page.tsx    # Benchmarks visualization
-│   └── api/
-│       ├── chat/route.ts      # Vercel AI SDK + multi-model + trace capture
-│       ├── traces/route.ts    # Trace retrieval + deletion API
-│       ├── eval/route.ts      # With/without memory eval comparison
-│       ├── export/route.ts    # Trace dataset export API
-│       └── regressions/route.ts # Regression tests + deploy gate API
-├── components/
-│   ├── ChatPanel.tsx          # Chat with memory toggle
-│   ├── TracePanel.tsx         # Real-time trace timeline + save as regression
-│   ├── MemoryPanel.tsx        # Stored traces browser
-│   ├── DiffPanel.tsx          # Visual trace diff for debugging regressions
-│   ├── EvalPanel.tsx          # Eval comparison dashboard
-│   └── RegressionPanel.tsx    # CI/CD deploy gate + regression suite
-```
-
-### Core Library (`lib/hippo.ts`)
-
-**TraceBuilder** — Creates structured traces step-by-step:
-```typescript
-const trace = new TraceBuilder(traceId, sessionId, query);
-trace.addStep('tool_call', 'Searching for X', { toolName: 'search', toolArgs: { q: 'X' } });
-trace.addStep('tool_result', 'Found 3 results', { toolName: 'search' });
-trace.addStep('assistant_message', 'Based on my research...');
-const completed = trace.complete('Summary of the reasoning');
-```
-
-**MemoryStore** — Stores and retrieves reasoning traces:
-```typescript
-import { hippoMemory } from 'hippo-reasoning';
-
-// Store a completed trace
-hippoMemory.store(completedTrace);
-
-// Get reasoning context for a new query
-const context = hippoMemory.getReasoningContext(newQuery, sessionId);
-// → Inject into system prompt for improved responses
+│   └── api/                   # Chat, traces, eval, export, regressions
+└── components/                # ChatPanel, TracePanel, MemoryPanel, DiffPanel, EvalPanel, RegressionPanel
 ```
 
 ## API Reference
 
-### TraceBuilder
+### Core Library
 
-| Method | Description |
-|--------|-------------|
-| `new TraceBuilder(traceId, sessionId, query)` | Create a new trace |
-| `.addStep(type, content, metadata?)` | Add a step to the trace |
-| `.complete(summary?)` | Finalize and return the trace |
+| Class | Key Methods |
+|-------|-------------|
+| `TraceBuilder` | `new TraceBuilder(traceId, sessionId, query)`, `.addStep(type, content, metadata?)`, `.complete(summary?)` |
+| `MemoryStore` | `.store(trace)`, `.get(traceId)`, `.getBySession(sessionId)`, `.getReasoningContext(query, sessionId)`, `.getStats()` |
 
-**Step types:** `user_message` | `assistant_message` | `tool_call` | `tool_result` | `reasoning`
+**Step types:** `user_message` · `assistant_message` · `tool_call` · `tool_result` · `reasoning`
 
-### MemoryStore
-
-| Method | Description |
-|--------|-------------|
-| `.store(trace)` | Store a completed trace |
-| `.get(traceId)` | Retrieve a specific trace |
-| `.getBySession(sessionId)` | Get all traces for a session |
-| `.getReasoningContext(query, sessionId)` | Get formatted context for system prompt injection |
-| `.getStats()` | Get aggregate statistics |
-| `.clear()` | Clear all stored traces |
-
-### REST API (Demo App)
+### REST API
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/api/chat` | POST | Chat with agent, returns stream + trace ID |
-| `/api/traces?sessionId=X` | GET | Get stored traces |
-| `/api/traces?traceId=X` | GET | Get specific trace |
-| `/api/traces` | DELETE | Clear all traces |
+| `/api/traces` | GET/DELETE | Get or clear stored traces |
 | `/api/eval` | POST | Run with/without memory eval |
-| `/api/regressions` | GET | List regression tests + pass/fail status |
-| `/api/regressions` | POST | Create from trace, run single test, or run deploy gate |
-| `/api/regressions` | DELETE | Remove a regression test |
-| `/api/export?format=X` | GET | Export traces as datasets (openai_jsonl, anthropic_jsonl, csv, json) |
+| `/api/regressions` | GET/POST/DELETE | Regression tests + deploy gate |
+| `/api/export?format=X` | GET | Export as openai_jsonl, anthropic_jsonl, csv, json |
 
 ## Benchmarks
 
-Measured on the demo app with 5 diverse research queries:
+Benchmarks vary per session — chat 3–5 times to build memory, then use the **Eval** tab to see the delta across relevance, completeness, reasoning quality, and tool usage dimensions.
 
 | Metric | Value |
 |--------|-------|
 | Tracing overhead per step | ~2ms |
 | Average trace size | ~1.2 KB |
-| Eval score WITH memory | 82% avg |
-| Eval score WITHOUT memory | 68% avg |
-| Quality improvement | **+21%** |
-
-Benchmarks vary per session — chat 3-5 times to build memory, then use the Eval tab to see the delta.
 
 ## How It Compares
 
-The AI agent tooling landscape has two categories that don't talk to each other:
+**Memory tools** (Mem0, Zep) store *facts*. **Observability tools** (LangSmith, Langfuse) *trace* reasoning. **Hippo bridges the gap** — it captures traces like observability, retrieves them like memory, and gates deployments like CI/CD.
 
-**Memory tools** (Mem0, Zep, Minns) store *facts* — user preferences, extracted entities, conversation summaries. They make agents remember *what happened*, but not *how the agent thought about it*.
-
-**Observability tools** (LangSmith, Langfuse) *trace* reasoning — tool calls, latency, step-by-step logs. They let developers *inspect* agent behavior in hindsight, but don't feed traces back as memory.
-
-**Hippo bridges the gap.** It captures reasoning traces like an observability tool, then stores and retrieves them like a memory system — creating a closed loop where agents actually learn from their own reasoning.
-
-| Tool | Category | Stores Facts | Stores Reasoning | Trace Replay | Built-in Eval | Vercel AI SDK Native |
+| Tool | Category | Deploy Gate | Stores Reasoning | Trace Replay | Built-in Eval | Vercel AI SDK Native |
 |------|----------|:-:|:-:|:-:|:-:|:-:|
-| Mem0 | Memory | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Zep | Memory | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Minns | Memory | ✅ | partial | ❌ | ❌ | ❌ |
-| LangMem | Memory | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Letta/MemGPT | Memory | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Mem0 | Memory | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Zep | Memory | ❌ | ❌ | ❌ | ❌ | ❌ |
+| LangMem | Memory | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Letta/MemGPT | Memory | ❌ | ❌ | ❌ | ❌ | ❌ |
 | LangSmith | Observability | ❌ | traces only | ❌ | ✅ | ❌ |
 | Langfuse | Observability | ❌ | traces only | ❌ | ✅ | ❌ |
-| **Hippo** | **Reasoning Memory** | ❌ | **✅** | **✅** | **✅** | **✅** |
-
-Hippo doesn't replace fact memory or observability — it adds the missing layer between them: **reasoning memory that agents can learn from**.
+| **Hippo** | **Agent CI/CD** | **✅** | **✅** | **✅** | **✅** | **✅** |
 
 ## Tech Stack
 
@@ -281,13 +189,21 @@ Set `ANTHROPIC_API_KEY` in your Vercel environment variables.
 - [x] Deploy gate (run all regression tests, PASS/FAIL)
 - [x] Cross-model memory (OpenAI, Google, etc.)
 - [x] Trace similarity search for smarter retrieval
-- [x] Outcome-driven memory policies (reinforce traces that led to good results, decay bad ones)
+- [x] Outcome-driven memory policies
 - [x] Visual trace diff for debugging regressions
 - [x] Export traces as datasets for fine-tuning
 - [x] Composable memory: combine Hippo reasoning traces with Mem0/Zep fact memory
 - [x] Plugin system for custom trace processors
 - [x] Persistent storage via Vercel KV (Upstash Redis)
-- [ ] `hippo gate` CLI command for CI pipelines
+- [x] `hippo gate` CLI command for CI pipelines
+
+## Contributing
+
+We welcome contributions! Please read our [Contributing Guide](CONTRIBUTING.md) for details on the development workflow, code standards, and how to submit pull requests.
+
+## Security
+
+To report a vulnerability, please see our [Security Policy](SECURITY.md).
 
 ## License
 
@@ -295,4 +211,4 @@ MIT
 
 ---
 
-Built by [Leon Benz](https://www.linkedin.com/in/leonbenz/) — reasoning memory for the AI-native builder era.
+Built by [Leon Benz](https://www.linkedin.com/in/leonbenz/)
