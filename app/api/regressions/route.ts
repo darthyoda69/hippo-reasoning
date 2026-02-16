@@ -26,6 +26,11 @@ export async function POST(req: NextRequest) {
     let trace = body.trace;
     if (!trace && body.traceId) {
       trace = await hippoMemory.get(body.traceId);
+      // Retry once after 1 second (trace may still be writing in serverless)
+      if (!trace) {
+        await new Promise(r => setTimeout(r, 1000));
+        trace = await hippoMemory.get(body.traceId);
+      }
     }
     if (!trace) {
       return Response.json({ error: 'Trace not found — pass full trace object in body' }, { status: 400 });
@@ -94,7 +99,7 @@ export async function POST(req: NextRequest) {
       tests = await hippoRegressions.getAll();
     }
     if (!tests || tests.length === 0) {
-      return Response.json({ error: 'No regression tests', gate: 'skip' }, { status: 400 });
+      return Response.json({ gate: 'SKIP', results: [], summary: 'No regression tests configured' });
     }
 
     const results: Array<{ testId: string; name: string; passed: boolean; score: number }> = [];

@@ -138,6 +138,8 @@ export async function POST(req: Request) {
           // a trace with at least: user_message + assistant_message.
           if (event.text) {
             trace.addStep('assistant_message', event.text.slice(0, 500));
+          } else {
+            trace.addStep('assistant_message', '[empty response]');
           }
 
           const completedTrace = trace.complete(

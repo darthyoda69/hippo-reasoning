@@ -22,15 +22,46 @@ function getSavedMessages(sessionId: string): Message[] {
 export function ChatPanel({ sessionId, onTraceUpdate, onStreamingChange }: ChatPanelProps) {
   const [useMemory, setUseMemory] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const lastTraceIdRef = useRef<string | null>(null);
+
+  const fetchTraceWithRetry = useCallback(async (traceId: string) => {
+    const delays = [500, 1500, 3000];
+    for (const delay of delays) {
+      await new Promise(r => setTimeout(r, delay));
+      try {
+        const res = await fetch(`/api/traces?traceId=${traceId}`);
+        const data = await res.json();
+        if (data.trace) {
+          onTraceUpdate(data.trace);
+          return;
+        }
+      } catch { /* retry */ }
+    }
+    // Fallback: fetch latest trace by session
+    try {
+      const res = await fetch(`/api/traces?sessionId=${sessionId}`);
+      const data = await res.json();
+      if (data.traces?.length > 0) {
+        onTraceUpdate(data.traces[data.traces.length - 1]);
+      }
+    } catch { /* give up */ }
+  }, [sessionId, onTraceUpdate]);
 
   const { messages, setMessages, input, handleInputChange, handleSubmit, isLoading, data } = useChat({
     api: '/api/chat',
     body: { sessionId, useMemory },
-    onResponse: async () => {
+    onResponse: async (response) => {
       onStreamingChange(true);
+      const traceId = response.headers.get('X-Hippo-Trace-Id');
+      if (traceId) lastTraceIdRef.current = traceId;
     },
     onFinish: async () => {
       onStreamingChange(false);
+      // Final fetch with delay to ensure trace is stored server-side
+      if (lastTraceIdRef.current) {
+        const id = lastTraceIdRef.current;
+        setTimeout(() => fetchTraceWithRetry(id), 800);
+      }
     },
   });
 

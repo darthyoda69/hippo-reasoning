@@ -156,6 +156,8 @@ export function RegressionPanel({ sessionId }: RegressionPanelProps) {
         .hippo-terminal { font-family: 'JetBrains Mono', monospace; }
         .gate-pass-glow { color: #00ff41; text-shadow: 0 0 8px #00ff41, 0 0 16px #00ff41; }
         .gate-fail-glow { color: #ff0040; text-shadow: 0 0 8px #ff0040, 0 0 16px #ff0040; }
+        .gate-skip-glow { color: #ffd700; text-shadow: 0 0 8px #ffd700, 0 0 16px #ffd700; }
+        .gate-error-glow { color: #ff8c00; text-shadow: 0 0 8px #ff8c00, 0 0 16px #ff8c00; }
       `}</style>
 
       <div className="hippo-terminal">
@@ -188,6 +190,14 @@ export function RegressionPanel({ sessionId }: RegressionPanelProps) {
                 <div className="gate-pass-glow text-3xl font-bold tracking-wider">
                   GATE: PASS
                 </div>
+              ) : gateResult.gate === 'SKIP' ? (
+                <div className="gate-skip-glow text-3xl font-bold tracking-wider">
+                  GATE: SKIP
+                </div>
+              ) : gateResult.gate === 'ERROR' ? (
+                <div className="gate-error-glow text-3xl font-bold tracking-wider">
+                  GATE: ERROR
+                </div>
               ) : (
                 <div className="gate-fail-glow text-3xl font-bold tracking-wider">
                   GATE: FAIL
@@ -196,9 +206,15 @@ export function RegressionPanel({ sessionId }: RegressionPanelProps) {
             </div>
 
             <div className={`text-xs font-medium mb-4 ${
-              gateResult.gate === 'PASS' ? 'text-[#00ff41]' : 'text-[#ff0040]'
+              gateResult.gate === 'PASS' ? 'text-[#00ff41]' :
+              gateResult.gate === 'SKIP' ? 'text-[#ffd700]' :
+              gateResult.gate === 'ERROR' ? 'text-[#ff8c00]' :
+              'text-[#ff0040]'
             }`}>
-              {gateResult.gate === 'PASS' ? '>> deploy authorized' : '>> BLOCKED -- regressions detected'}
+              {gateResult.gate === 'PASS' ? '>> deploy authorized' :
+               gateResult.gate === 'SKIP' ? '>> no tests configured -- skipping gate' :
+               gateResult.gate === 'ERROR' ? '>> gate execution failed' :
+               '>> BLOCKED -- regressions detected'}
             </div>
 
             <div className="space-y-1 text-[#b0b0b0] text-xs">
